@@ -35,7 +35,7 @@ class DeckOfCards:
         num_players = len(players)
         len_deck = len(self.deck)
         num_left_over = len_deck % num_players
-        left_over = [self.deck.pop(0) for _ in range(num_left_over)]
+        left_over = [self.deck.pop() for _ in range(num_left_over)]
 
         if not len(self.deck) % num_players == 0:
             raise DeckNotDivisibleException(
@@ -46,7 +46,7 @@ class DeckOfCards:
 
         while self.deck:
             player = next(player_cycle)
-            card = self.deck.pop(0)
+            card = self.deck.pop()
             player.add_card_to_hand(card)
 
         return left_over
