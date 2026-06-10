@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 fastapi = "==0.116.1"
 pydantic = "==2.11.7"
+redis = "~=5.0.0"
 uvicorn = "==0.35.0"
 
 [dev-packages]
