@@ -9,7 +9,7 @@ class Player:
         self.score = 0
         self.hand = []
 
-    def set_score(self, round_score: int):
+    def add_score(self, round_score: int):
         self.score += round_score
 
     def set_hand(self, cards: list[Card]):

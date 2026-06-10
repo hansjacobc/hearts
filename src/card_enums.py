@@ -8,7 +8,6 @@ class Suits(Enum):
     DIAMONDS = "DIAMONDS"
     HEARTS = "HEARTS"
     SPADES = "SPADES"
-    JOKER = "JOKER"
 
 
 class Ranks(Enum):
@@ -27,7 +26,6 @@ class Ranks(Enum):
     JACK = "JACK"
     QUEEN = "QUEEN"
     KING = "KING"
-    JOKER = "JOKER"
 
 
 class Card:
@@ -39,7 +37,6 @@ class Card:
 
     def get_rank_value(self) -> int:
         value_map = {
-            "JOKER": 0,
             "TWO": 2,
             "THREE": 3,
             "FOUR": 4,
