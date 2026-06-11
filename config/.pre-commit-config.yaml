@@ -14,7 +14,7 @@ repos:
     hooks:
       - id: pylint
         args: [--rcfile=config/.pylintrc]
-        additional_dependencies: [fastapi, uvicorn]
+        additional_dependencies: [fastapi, uvicorn, redis]
   - repo: https://github.com/psf/black
     rev: 23.7.0
     hooks:
