@@ -1,16 +1,18 @@
 import secrets
 
-from src.db.redis_client import redis_client
+from redis.asyncio import Redis
 from src.rooms import RoomStatus
 from src.schemas import CreateRoomRequest, CreateRoomResponse
 
 
 # TODO: write test and handle redis dependency injection
-async def handle_create_room(request: CreateRoomRequest) -> CreateRoomResponse:
+async def handle_create_room(
+    request: CreateRoomRequest, redis: Redis
+) -> CreateRoomResponse:
     room_id = secrets.token_urlsafe(3).lower()
 
     room_key = f"room:{room_id}"
-    await redis_client.hset(
+    await redis.hset(
         room_key,
         mapping={
             "host_player_id": request.host_player_id,
@@ -18,11 +20,11 @@ async def handle_create_room(request: CreateRoomRequest) -> CreateRoomResponse:
             "status": RoomStatus.WAITING,
         },
     )
-    await redis_client.expire(room_key, 3600)
+    await redis.expire(room_key, 3600)
 
     players_key = f"{room_key}:players"
-    await redis_client.sadd(players_key, request.host_player_id)
-    await redis_client.expire(players_key, 3600)
+    await redis.sadd(players_key, request.host_player_id)
+    await redis.expire(players_key, 3600)
 
     return CreateRoomResponse(
         room_id=room_id,

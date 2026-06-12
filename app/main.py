@@ -1,8 +1,7 @@
-from contextlib import asynccontextmanager
-from typing import AsyncIterator
-
-from fastapi import FastAPI
-from src.db.redis_client import verify_connection
+from app.dependencies import get_redis
+from app.lifespan import lifespan
+from fastapi import Depends, FastAPI
+from redis.asyncio import Redis
 from src.handlers.handle_create_player import handle_create_player
 from src.handlers.handle_create_room import handle_create_room
 from src.handlers.handle_get_user import handle_get_user
@@ -13,13 +12,6 @@ from src.schemas import (
     CreateRoomRequest,
     CreateRoomResponse,
 )
-
-
-@asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    await verify_connection()
-    yield
-
 
 app = FastAPI(lifespan=lifespan)
 
@@ -40,5 +32,5 @@ async def create_player(request: CreatePlayerRequest):
 
 
 @app.post("/rooms", response_model=CreateRoomResponse)
-async def create_room(request: CreateRoomRequest):
-    return await handle_create_room(request)
+async def create_room(request: CreateRoomRequest, redis: Redis = Depends(get_redis)):
+    return await handle_create_room(request, redis)
