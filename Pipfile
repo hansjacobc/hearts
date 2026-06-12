@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 fastapi = "==0.116.1"
+httpx = "==0.28.1"
 pydantic = "==2.11.7"
 redis = "~=5.0.0"
 uvicorn = "==0.35.0"
@@ -21,9 +22,9 @@ pre-commit = "==3.8.0"
 [scripts]
 lint-fix = "pre-commit run --all-files --hook-stage push -c ./config/.pre-commit-config.yaml"
 app-local = "uvicorn app.main:app"
-unit-tests = ""
-integration-tests = ""
-tests = ""
+unit-tests = "pytest test/unit"
+integration-tests = "pytest test/integration"
+tests = "pytest test"
 
 [requires]
 python_version = "3.13"
