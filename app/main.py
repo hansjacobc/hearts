@@ -6,11 +6,17 @@ from src.handlers.handle_create_player import handle_create_player
 from src.handlers.handle_create_room import handle_create_room
 from src.handlers.handle_get_user import handle_get_user
 from src.handlers.handle_health import handle_health
+from src.handlers.handle_join_room import handle_join_room
+from src.handlers.handle_start_game import handle_start_game
 from src.schemas import (
     CreatePlayerRequest,
     CreatePlayerResponse,
     CreateRoomRequest,
     CreateRoomResponse,
+    JoinRoomRequest,
+    JoinRoomResponse,
+    StartGameRequest,
+    StartGameResponse,
 )
 
 app = FastAPI(lifespan=lifespan)
@@ -34,3 +40,13 @@ async def create_player(request: CreatePlayerRequest):
 @app.post("/rooms", response_model=CreateRoomResponse)
 async def create_room(request: CreateRoomRequest, redis: Redis = Depends(get_redis)):
     return await handle_create_room(request, redis)
+
+
+@app.post("/rooms/{room_id}/join", response_model=JoinRoomResponse)
+async def join_room(request: JoinRoomRequest, redis: Redis = Depends(get_redis)):
+    return await handle_join_room(request, redis)
+
+
+@app.post("/rooms/{room_id}/start", response_model=StartGameResponse)
+async def start_game(request: StartGameRequest, redis: Redis = Depends(get_redis)):
+    return await handle_start_game(request, redis)

@@ -5,7 +5,6 @@ from src.rooms import RoomStatus
 from src.schemas import CreateRoomRequest, CreateRoomResponse
 
 
-# TODO: write test and handle redis dependency injection
 async def handle_create_room(
     request: CreateRoomRequest, redis: Redis
 ) -> CreateRoomResponse:

@@ -27,3 +27,29 @@ class CreateRoomResponse(BaseModel):
     room_id: str
     host_player_id: str
     num_players: int = Field(ge=3, le=8)
+
+
+class JoinRoomRequest(BaseModel):
+    """Join a room with a player id and a room id"""
+
+    room_id: str
+    player_id: str
+
+
+class JoinRoomResponse(BaseModel):
+    """Verifies that the user has joined the room successfully"""
+
+    room_id: str
+    player_id: str
+
+
+class StartGameRequest(BaseModel):
+    """Start a game for a room"""
+
+    room_id: str
+
+
+class StartGameResponse(BaseModel):
+    """Confirm the game has started"""
+
+    room_id: str
