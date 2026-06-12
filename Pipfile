@@ -11,6 +11,7 @@ uvicorn = "==0.35.0"
 
 [dev-packages]
 pytest = "9.0.3"
+pytest-asyncio = "~=1.4.0"
 black = "26.3.1"
 pylint = "==3.2.7"
 isort = "==5.13.2"
@@ -20,6 +21,9 @@ pre-commit = "==3.8.0"
 [scripts]
 lint-fix = "pre-commit run --all-files --hook-stage push -c ./config/.pre-commit-config.yaml"
 app-local = "uvicorn app.main:app"
+unit-tests = ""
+integration-tests = ""
+tests = ""
 
 [requires]
 python_version = "3.13"
