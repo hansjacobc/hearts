@@ -51,9 +51,10 @@ async def join_room(request: JoinRoomRequest, redis: Redis = Depends(get_redis))
 async def start_game(request: StartGameRequest, redis: Redis = Depends(get_redis)):
     return await handle_start_game(request, redis)
 
+
 # possibly needed for websockets later but need to persist hands in redis
 """
-Player hands 
+Player hands
 
 Key:
 
