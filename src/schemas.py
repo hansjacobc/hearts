@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from src.rooms import RoomStatus
 
 
 class CreatePlayerRequest(BaseModel):
@@ -43,12 +44,15 @@ class JoinRoomResponse(BaseModel):
 
 
 class StartGameRequest(BaseModel):
-    """Start a game for a room"""
+    """Take in a host player id"""
 
-    room_id: str
+    player_id: str
 
 
 class StartGameResponse(BaseModel):
     """Confirm the game has started"""
 
     room_id: str
+    status: RoomStatus
+    starting_player_id: str
+    turn_order: list[str]
