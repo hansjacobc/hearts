@@ -37,3 +37,4 @@ async def test_create_room_endpoint(client):
     resp = response.json()
     assert resp["host_player_id"] == "player1"
     assert resp["num_players"] == 4
+    assert len(resp["room_id"]) == 4

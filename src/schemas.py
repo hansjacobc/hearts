@@ -30,9 +30,8 @@ class CreateRoomResponse(BaseModel):
 
 
 class JoinRoomRequest(BaseModel):
-    """Join a room with a player id and a room id"""
+    """Join a room with a player id"""
 
-    room_id: str
     player_id: str
 
 

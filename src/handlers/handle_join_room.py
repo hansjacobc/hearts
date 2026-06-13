@@ -1,10 +1,11 @@
 from redis.asyncio import Redis
-
 from src.rooms import RoomStatus
 from src.schemas import JoinRoomRequest, JoinRoomResponse
 
 
-async def handle_join_room(request: JoinRoomRequest, redis: Redis) -> JoinRoomResponse:
+async def handle_join_room(
+    room_id: str, request: JoinRoomRequest, redis: Redis
+) -> JoinRoomResponse:
     """
     Validate room exists.
     Validate game has not started.
@@ -12,7 +13,7 @@ async def handle_join_room(request: JoinRoomRequest, redis: Redis) -> JoinRoomRe
     Validate player is not already in room.
     Persist updated state.
     """
-    room_key = f"room:{request.room_id}"
+    room_key = f"room:{room_id}"
     players_key = f"{room_key}:players"
 
     # Validate room exists
@@ -42,6 +43,6 @@ async def handle_join_room(request: JoinRoomRequest, redis: Redis) -> JoinRoomRe
     await redis.sadd(players_key, request.player_id)
 
     return JoinRoomResponse(
-        room_id=request.room_id,
+        room_id=room_id,
         player_id=request.player_id,
     )

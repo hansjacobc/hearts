@@ -43,8 +43,10 @@ async def create_room(request: CreateRoomRequest, redis: Redis = Depends(get_red
 
 
 @app.post("/rooms/{room_id}/join", response_model=JoinRoomResponse)
-async def join_room(request: JoinRoomRequest, redis: Redis = Depends(get_redis)):
-    return await handle_join_room(request, redis)
+async def join_room(
+    room_id: str, request: JoinRoomRequest, redis: Redis = Depends(get_redis)
+):
+    return await handle_join_room(room_id, request, redis)
 
 
 @app.post("/rooms/{room_id}/start", response_model=StartGameResponse)
