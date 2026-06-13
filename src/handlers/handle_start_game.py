@@ -14,12 +14,12 @@ def deal_hands(num_players: int, player_ids: list[str]):
     deck = [f"{rank}_{suit}" for suit in SUITS for rank in RANKS]
     random.shuffle(deck)
 
-    hand_size = 52 % num_players
+    hand_size = 52 // num_players
     hands = {}
     for player_id in player_ids:
         hands[player_id] = deck[:hand_size]
-        left_over_deck = deck[hand_size:]
-    return hands, left_over_deck
+        deck = deck[hand_size:]
+    return hands, deck
 
 
 def find_starting_player(hands: dict[str, list[str]], left_over_deck: list[str]) -> str:
@@ -27,7 +27,7 @@ def find_starting_player(hands: dict[str, list[str]], left_over_deck: list[str])
     Want to find the player with 2 of clubs since they start.
     Also have to account for the fact that the 2 of clubs can be in the leftover pile.
     """
-
+    starting_player_id = ""
     starting_card = "2_clubs"
     for i in range(3, 7):
         if starting_card in left_over_deck:
@@ -91,7 +91,7 @@ async def handle_start_game(
     await pipe.hset(
         f"room:{room_id}:state",
         mapping={
-            "current_turn_player_id": "starting_player_id",
+            "current_turn_player_id": starting_player_id,
             "turn_number": 1,
             "phase": GamePhase.PASSING,
             "last_action": "",

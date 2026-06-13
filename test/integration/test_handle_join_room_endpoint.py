@@ -5,7 +5,7 @@ from src.schemas import CreateRoomRequest, JoinRoomRequest
 
 
 @pytest.mark.asyncio
-async def test_create_room_redis(redis_client):
+async def test_join_room_redis(redis_client):
     # set up a room
     request = CreateRoomRequest(
         host_player_id="player1",
@@ -33,7 +33,7 @@ async def test_create_room_redis(redis_client):
 
 
 @pytest.mark.asyncio
-async def test_create_room_endpoint(client):
+async def test_join_room_endpoint(client):
     create_room_resp = await client.post(
         "/rooms",
         json={
