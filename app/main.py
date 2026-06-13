@@ -53,7 +53,7 @@ async def start_game(request: StartGameRequest, redis: Redis = Depends(get_redis
 
 # possibly needed for websockets later but need to persist hands in redis
 """
-Player hands 
+Player hands
 
 Key:
 
