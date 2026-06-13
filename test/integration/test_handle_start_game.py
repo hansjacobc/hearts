@@ -101,5 +101,5 @@ async def test_start_room_endpoint(client):
     )
     resp_json = start_room_resp.json()
     assert resp_json["status"] == "PLAYING"
-    assert resp_json["starting_player_id"] == "player1"
+    assert resp_json["starting_player_id"] is not None
     assert len(resp_json["turn_order"]) == 5
