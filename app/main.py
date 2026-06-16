@@ -33,8 +33,8 @@ async def get_user(player_id: str):
 
 
 @app.post("/players", response_model=CreatePlayerResponse)
-async def create_player(request: CreatePlayerRequest):
-    return await handle_create_player(request)
+async def create_player(request: CreatePlayerRequest, redis: Redis = Depends(get_redis)):
+    return await handle_create_player(request, redis)
 
 
 @app.post("/rooms", response_model=CreateRoomResponse)
