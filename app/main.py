@@ -4,7 +4,7 @@ from fastapi import Depends, FastAPI
 from redis.asyncio import Redis
 from src.handlers.handle_create_player import handle_create_player
 from src.handlers.handle_create_room import handle_create_room
-from src.handlers.handle_get_user import handle_get_user
+from src.handlers.handle_get_user import handle_get_player
 from src.handlers.handle_health import handle_health
 from src.handlers.handle_join_room import handle_join_room
 from src.handlers.handle_start_game import handle_start_game
@@ -28,12 +28,14 @@ async def health():
 
 
 @app.get("/players/{player_id}", response_model=CreatePlayerResponse)
-async def get_user(player_id: str):
-    return await handle_get_user(player_id)
+async def get_player(player_id: str, redis: Redis = Depends(get_redis)):
+    return await handle_get_player(player_id, redis)
 
 
 @app.post("/players", response_model=CreatePlayerResponse)
-async def create_player(request: CreatePlayerRequest, redis: Redis = Depends(get_redis)):
+async def create_player(
+    request: CreatePlayerRequest, redis: Redis = Depends(get_redis)
+):
     return await handle_create_player(request, redis)
 
 
