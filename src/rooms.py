@@ -1,5 +1,7 @@
 from enum import StrEnum
 
+ONE_HOUR_TTL = 3600
+
 
 class RoomStatus(StrEnum):
     """Enum for room status"""

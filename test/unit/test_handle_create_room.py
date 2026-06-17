@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from src.handlers.handle_create_room import handle_create_room
-from src.rooms import RoomStatus
+from src.rooms import ONE_HOUR_TTL, RoomStatus
 from src.schemas import CreateRoomRequest
 
 
@@ -53,5 +53,5 @@ async def test_handle_create_room_redis_calls():
     )
 
     assert redis.expire.await_count == 2
-    redis.expire.assert_any_await(room_key, 3600)
-    redis.expire.assert_any_await(players_key, 3600)
+    redis.expire.assert_any_await(room_key, ONE_HOUR_TTL)
+    redis.expire.assert_any_await(players_key, ONE_HOUR_TTL)

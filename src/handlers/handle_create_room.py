@@ -1,7 +1,7 @@
 import secrets
 
 from redis.asyncio import Redis
-from src.rooms import RoomStatus
+from src.rooms import ONE_HOUR_TTL, RoomStatus
 from src.schemas import CreateRoomRequest, CreateRoomResponse
 
 
@@ -19,11 +19,11 @@ async def handle_create_room(
             "status": RoomStatus.WAITING,
         },
     )
-    await redis.expire(room_key, 3600)
+    await redis.expire(room_key, ONE_HOUR_TTL)
 
     players_key = f"{room_key}:players"
     await redis.sadd(players_key, request.host_player_id)
-    await redis.expire(players_key, 3600)
+    await redis.expire(players_key, ONE_HOUR_TTL)
 
     return CreateRoomResponse(
         room_id=room_id,

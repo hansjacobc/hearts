@@ -1,7 +1,7 @@
 import random
 
 from redis.asyncio import Redis
-from src.rooms import GamePhase, RoomStatus
+from src.rooms import ONE_HOUR_TTL, GamePhase, RoomStatus
 from src.schemas import StartGameRequest, StartGameResponse
 
 SUITS = ["spades", "hearts", "diamonds", "clubs"]
@@ -77,15 +77,15 @@ async def handle_start_game(
     pipe = redis.pipeline()
     for player_id, hand in hands.items():
         await pipe.rpush(f"room:{room_id}:hand:{player_id}", *hand)
-        await pipe.expire(f"room:{room_id}:hand:{player_id}", 3600)
+        await pipe.expire(f"room:{room_id}:hand:{player_id}", ONE_HOUR_TTL)
 
     # remaining cards in the deck
     await pipe.rpush(f"room:{room_id}:deck", *left_over_deck)
-    await pipe.expire(f"room:{room_id}:deck", 3600)
+    await pipe.expire(f"room:{room_id}:deck", ONE_HOUR_TTL)
 
     # establish turn order
     await pipe.rpush(f"room:{room_id}:turn_order", *turn_order)
-    await pipe.expire(f"room:{room_id}:turn_order", 3600)
+    await pipe.expire(f"room:{room_id}:turn_order", ONE_HOUR_TTL)
 
     # set game state
     await pipe.hset(
@@ -106,7 +106,7 @@ async def handle_start_game(
             "status": RoomStatus.PLAYING,
         },
     )
-    await pipe.expire(f"room:{room_id}", 3600)
+    await pipe.expire(f"room:{room_id}", ONE_HOUR_TTL)
 
     await pipe.execute()
 
