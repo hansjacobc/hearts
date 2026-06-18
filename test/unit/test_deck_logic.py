@@ -83,7 +83,7 @@ def test_find_starting_player():
     }
     left_over_deck = []
     starting_player_id = find_starting_player(hands, left_over_deck)
-    assert starting_player_id == "p1"
+    assert starting_player_id == ("p1", "2_clubs")
 
 
 def test_find_starting_player_2_clubs_in_deck():
@@ -95,7 +95,7 @@ def test_find_starting_player_2_clubs_in_deck():
     }
     left_over_deck = ["2_clubs"]
     starting_player_id = find_starting_player(hands, left_over_deck)
-    assert starting_player_id == "p2"
+    assert starting_player_id == ("p2", "3_clubs")
 
 
 def test_find_starting_player_giga_edge_case():
@@ -107,4 +107,4 @@ def test_find_starting_player_giga_edge_case():
     }
     left_over_deck = ["2_clubs", "3_clubs", "4_clubs", "5_clubs"]
     starting_player_id = find_starting_player(hands, left_over_deck)
-    assert starting_player_id == "p3"
+    assert starting_player_id == ("p3", "6_clubs")

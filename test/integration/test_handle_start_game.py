@@ -56,11 +56,15 @@ async def test_start_room_redis(redis_client):
 
     state = await redis_client.hgetall(f"room:{room_id}:state")
     assert state == {
+        "card_pile": "[]",
         "current_turn_player_id": start_game_resp.starting_player_id,
+        "is_hearts_broken": "0",
         "last_action": "",
         "last_action_player_id": "",
+        "lead_suit": "clubs",
         "phase": "PASSING",
-        "round": "1",
+        "round_number": "1",
+        "starting_card": "2_clubs",
         "turn_number": "1",
     }
     room = await redis_client.hgetall(f"room:{room_id}")

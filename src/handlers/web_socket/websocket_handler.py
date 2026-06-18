@@ -1,28 +1,34 @@
+from typing import Awaitable, Callable
+
 from redis.asyncio import Redis
-from src.handlers.web_socket.connections import broadcast, get_room_lock
+from src.handlers.web_socket.connections import get_room_lock, send_to_player
+from src.handlers.web_socket.handle_play_card import handle_play_card
+
+ActionHandler = Callable[[str, str, dict, Redis], Awaitable[None]]
+
+ACTION_HANDLERS: dict[str, ActionHandler] = {
+    "play_card": handle_play_card,
+    # "pass_cards": handle_pass_cards,
+    # "leave_room": handle_leave_room,
+}
 
 
-# TODO: make the handler generic and distribute
-#  logic for each action into a different file
 async def handle_websocket_action(
     room_id: str, player_id: str, message: dict, redis: Redis
 ) -> None:
-    """
-    Generic handler for all websocket action, each message type has its own function
-    to handle game flow logic and updating redis keys
-    There is a lock per room to ensure no race condition for each active game room.
-    """
-    async with get_room_lock(room_id):
-        action = message.get("type")
+    action = message.get("type")
+    handler = ACTION_HANDLERS.get(action)
 
-        if action == "play_card":
-            card = message["card"]
-            # validate turn, mutate Redis (lrem hand, advance turn state)...
-            await broadcast(
-                room_id,
-                {
-                    "type": "card_played",
-                    "player_id": player_id,
-                    "card": card,
-                },
-            )
+    if handler is None:
+        await send_to_player(
+            room_id,
+            player_id,
+            {
+                "type": "error",
+                "message": f"unknown action type: {action}",
+            },
+        )
+        return
+
+    async with get_room_lock(room_id):
+        await handler(room_id, player_id, message, redis)

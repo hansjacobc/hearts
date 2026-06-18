@@ -33,3 +33,13 @@ async def broadcast(room_id: str, payload: dict) -> None:
             dead.append(player_id)
     for player_id in dead:
         unregister_web_socket(room_id, player_id)
+
+
+async def send_to_player(room_id: str, player_id: str, payload: dict) -> None:
+    ws = _room_connections.get(room_id, {}).get(player_id)
+    if ws is None:
+        return
+    try:
+        await ws.send_json(payload)
+    except Exception:
+        unregister_web_socket(room_id, player_id)

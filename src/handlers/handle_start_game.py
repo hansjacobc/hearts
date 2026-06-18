@@ -1,3 +1,4 @@
+import json
 import random
 
 from redis.asyncio import Redis
@@ -22,7 +23,9 @@ def deal_hands(num_players: int, player_ids: list[str]):
     return hands, deck
 
 
-def find_starting_player(hands: dict[str, list[str]], left_over_deck: list[str]) -> str:
+def find_starting_player(
+    hands: dict[str, list[str]], left_over_deck: list[str]
+) -> tuple[str, str]:
     """
     Want to find the player with 2 of clubs since they start.
     Also have to account for the fact that the 2 of clubs can be in the leftover pile.
@@ -35,7 +38,7 @@ def find_starting_player(hands: dict[str, list[str]], left_over_deck: list[str])
     for player_id, hand in hands.items():
         if starting_card in hand:
             starting_player_id = player_id
-    return starting_player_id
+    return starting_player_id, starting_card
 
 
 async def handle_start_game(
@@ -68,7 +71,7 @@ async def handle_start_game(
     hands, left_over_deck = deal_hands(num_players, player_ids)
 
     # Find starting player
-    starting_player_id = find_starting_player(hands, left_over_deck)
+    starting_player_id, starting_card = find_starting_player(hands, left_over_deck)
 
     random.shuffle(player_ids)
     turn_order = player_ids
@@ -93,10 +96,14 @@ async def handle_start_game(
         mapping={
             "current_turn_player_id": starting_player_id,
             "turn_number": 1,
+            "card_pile": json.dumps([]),
+            "is_hearts_broken": 0,
             "phase": GamePhase.PASSING,
             "last_action": "",
             "last_action_player_id": "",
-            "round": 1,
+            "round_number": 1,
+            "starting_card": starting_card,
+            "lead_suit": "clubs",
         },
     )
 
