@@ -60,6 +60,7 @@ def get_lead_suit(current_state: dict, end_of_round: bool) -> str:
 async def advance_game_state(
     room_id: str, player_id: str, card: str, nickname: str, redis: Redis
 ):
+    # TODO: need logic for last round
     end_of_round = False
     current_state = deserialize_state(await redis.hgetall(f"room:{room_id}:state"))
     next_player = await get_next_player(room_id, player_id, redis)

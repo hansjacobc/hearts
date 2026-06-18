@@ -5,7 +5,7 @@ from src.handlers.web_socket.helpers import deserialize_state
 from src.rooms import GamePhase
 
 
-# pylint:disable=too-many-return-statements
+# pylint: disable=too-many-return-statements
 async def is_valid_play(room_id: str, player_id: str, card: str, redis: Redis):
     state = deserialize_state(await redis.hgetall(f"room:{room_id}:state"))
 
@@ -59,10 +59,6 @@ async def is_valid_play(room_id: str, player_id: str, card: str, redis: Redis):
 
 async def handle_play_card(room_id: str, player_id: str, message: dict, redis: Redis):
     card = message.get("card")
-
-    # 1. is it this player's turn? (check room:{id}:state current_turn_player_id)
-    # 2. is this card actually in their hand? (check room:{id}:hand:{player_id})
-    # 3. does it follow suit-leading / hearts-broken rules?
 
     if not is_valid_play(room_id, player_id, card, redis):
         await send_to_player(
