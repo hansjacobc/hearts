@@ -1,11 +1,13 @@
 from redis.asyncio import Redis
+from src.handlers.web_socket.advance_game_state import advance_game_state
 from src.handlers.web_socket.connections import broadcast, send_to_player
+from src.handlers.web_socket.helpers import deserialize_state
 from src.rooms import GamePhase
 
 
 # pylint:disable=too-many-return-statements
 async def is_valid_play(room_id: str, player_id: str, card: str, redis: Redis):
-    state = await redis.hgetall(f"room:{room_id}:state")
+    state = deserialize_state(await redis.hgetall(f"room:{room_id}:state"))
 
     # check that game state is playing
     if state.get("phase") != GamePhase.PLAYING:
@@ -23,7 +25,7 @@ async def is_valid_play(room_id: str, player_id: str, card: str, redis: Redis):
 
     # Check that the card is a valid play
     turn_number = state.get("turn_number")
-    is_hearts_broken = bool(state.get("is_hearts_broken", 0))
+    is_hearts_broken = state.get("is_hearts_broken", 0)
     starting_card = state.get("starting_card")
     round_number = state.get("round_number")
     lead_suit = state.get("lead_suit")
@@ -43,12 +45,14 @@ async def is_valid_play(room_id: str, player_id: str, card: str, redis: Redis):
             return False
 
     # validate card played follows suit if they have a card of that suit
-    has_suit_in_hand = False
-    for c in player_hand:
-        if c.split("_")[1] == lead_suit:
-            has_suit_in_hand = True
-    if has_suit_in_hand and suit != lead_suit:
-        return False
+    # if start of round suit is open, we already checked if hearts are broken
+    if lead_suit != "OPEN":
+        has_suit_in_hand = False
+        for c in player_hand:
+            if c.split("_")[1] == lead_suit:
+                has_suit_in_hand = True
+        if has_suit_in_hand and suit != lead_suit:
+            return False
 
     return True
 
@@ -72,12 +76,20 @@ async def handle_play_card(room_id: str, player_id: str, message: dict, redis: R
         )
         return
 
-    # mutate Redis: lrem from hand, advance turn, etc.
+    # remove card from players hand
+    await redis.lrem(f"room:{room_id}:hand:{player_id}", 0, card)
+
+    # advance game state
+    player = await redis.hgetall(f"player:{player_id}")
+    nickname = player.get("nickname", "Anon")
+    await advance_game_state(room_id, player_id, card, nickname, redis)
+
     await broadcast(
         room_id,
         {
             "type": "card_played",
             "player_id": player_id,
             "card": card,
+            "nickname": nickname,
         },
     )

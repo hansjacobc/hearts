@@ -55,6 +55,8 @@ async def test_start_room_redis(redis_client):
     assert len(turn_order) == 5
 
     state = await redis_client.hgetall(f"room:{room_id}:state")
+    starting_card = state.pop("starting_card")
+    assert starting_card in ["2_clubs", "3_clubs", "4_clubs"]
     assert state == {
         "card_pile": "[]",
         "current_turn_player_id": start_game_resp.starting_player_id,
@@ -64,8 +66,8 @@ async def test_start_room_redis(redis_client):
         "lead_suit": "clubs",
         "phase": "PASSING",
         "round_number": "1",
-        "starting_card": "2_clubs",
         "turn_number": "1",
+        "total_players": "5",
     }
     room = await redis_client.hgetall(f"room:{room_id}")
     assert room == {

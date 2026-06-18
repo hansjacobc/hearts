@@ -1,6 +1,7 @@
 from enum import StrEnum
 
-ONE_HOUR_TTL = 3600
+ONE_HOUR_TTL = 1 * 60 * 60
+TWO_HOUR_TTL = 2 * 60 * 60
 
 
 class RoomStatus(StrEnum):

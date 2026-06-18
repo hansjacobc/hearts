@@ -104,6 +104,7 @@ async def handle_start_game(
             "round_number": 1,
             "starting_card": starting_card,
             "lead_suit": "clubs",
+            "total_players": num_players,
         },
     )
 
