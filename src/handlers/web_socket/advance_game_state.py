@@ -28,8 +28,8 @@ async def get_card_pile(current_state: dict, card: str, end_of_round: bool, redi
     """
     card_pile = current_state["card_pile"]
     if end_of_round:
-        # TODO: new function for adding cards to players pile and dealing
-        # them leftover pile if they got the first hearts
+        # TODO: new function for adding cards to losing players pile and dealing
+        # them leftover pile if they got the first hearts maybe separate from this function
         return []
     card_pile.append(card)
     return card_pile
