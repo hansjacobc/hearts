@@ -43,11 +43,14 @@ def is_broken(current_state: dict, card: str) -> int:
     return 0
 
 
-def get_round_number(current_state: dict, end_of_round: bool):
+def get_round_and_game_number(current_state: dict, end_of_round: bool):
     round_number = current_state["round_number"]
+    game_number = current_state["game_number"]
     if end_of_round:
-        round_number += 1
-    return round_number
+        round_number = 1
+        game_number += 1
+
+    return round_number, game_number
 
 
 def get_lead_suit(current_state: dict, end_of_round: bool) -> str:
@@ -60,7 +63,6 @@ def get_lead_suit(current_state: dict, end_of_round: bool) -> str:
 async def advance_game_state(
     room_id: str, player_id: str, card: str, nickname: str, redis: Redis
 ):
-    # TODO: need logic for last round
     end_of_round = False
     current_state = deserialize_state(await redis.hgetall(f"room:{room_id}:state"))
     next_player = await get_next_player(room_id, player_id, redis)
@@ -70,21 +72,21 @@ async def advance_game_state(
     card_pile = get_card_pile(current_state, card, end_of_round)
     is_hearts_broken = is_broken(current_state, card)
     game_phase = GamePhase.ROUND_END if end_of_round else GamePhase.PLAYING
-    round_number = get_round_number(current_state, end_of_round)
+    round_number, game_number = get_round_and_game_number(current_state, end_of_round)
     lead_suit = get_lead_suit(current_state, end_of_round)
-
     # set new state
     await redis.hset(
         f"room:{room_id}:state",
         mapping={
             "current_turn_player_id": next_player,
             "turn_number": turn_number,
+            "round_number": round_number,
+            "game_number": game_number,
             "card_pile": json.dumps(card_pile),
             "is_hearts_broken": is_hearts_broken,
             "phase": game_phase,
             "last_action": f"{nickname} played {card}",
             "last_action_player_id": current_state.get("current_turn_player_id"),
-            "round_number": round_number,
             "lead_suit": lead_suit,
         },
     )

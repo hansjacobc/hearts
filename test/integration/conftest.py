@@ -80,6 +80,7 @@ def make_room_state(redis_client):
         starting_card: str = "2_clubs",
         lead_suit: str = "clubs",
         total_players: int = 5,
+        game_number: int = 1,
     ):
         await redis_client.hset(
             f"room:{room_id}:state",
@@ -95,6 +96,7 @@ def make_room_state(redis_client):
                 "starting_card": starting_card,
                 "lead_suit": lead_suit,
                 "total_players": total_players,
+                "game_number": game_number
             },
         )
         if hand:
