@@ -22,7 +22,7 @@ def get_next_turn_number(current_state: dict) -> int:
 
 
 async def get_card_pile(
-    current_state: dict, card: str, end_of_round: bool
+    current_state: dict, card: str, end_of_round: bool, redis: Redis
 ) -> list[str]:
     """
     Not end of round -> add card to pile
@@ -30,6 +30,8 @@ async def get_card_pile(
     """
     card_pile = current_state["card_pile"]
     if end_of_round:
+        # need way to determine who played what card
+        determine_losing_player()
         # TODO: new function for adding cards to losing players pile and dealing them
         # leftover pile if they got the first hearts maybe separate from this function
         return []

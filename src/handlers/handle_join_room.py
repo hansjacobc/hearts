@@ -13,16 +13,15 @@ async def handle_join_room(
     Validate player is not already in room.
     Persist updated state.
     """
-    room_key = f"room:{room_id}"
-    players_key = f"{room_key}:players"
+    players_key = f"room:{room_id}:players"
 
     # Validate room exists
-    room_exists = await redis.exists(room_key)
+    room_exists = await redis.exists(f"room:{room_id}")
     if not room_exists:
         raise ValueError("Room does not exist")
 
     # Validate game has not started
-    room_data = await redis.hgetall(room_key)
+    room_data = await redis.hgetall(f"room:{room_id}")
     if room_data["status"] != RoomStatus.WAITING:
         raise ValueError("Game already started")
     max_players = int(room_data["max_players"])
