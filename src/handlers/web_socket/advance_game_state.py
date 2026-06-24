@@ -21,15 +21,17 @@ def get_next_turn_number(current_state: dict) -> int:
     return turn_number
 
 
-async def get_card_pile(current_state: dict, card: str, end_of_round: bool, redis: Redis) -> list[str]:
+async def get_card_pile(
+    current_state: dict, card: str, end_of_round: bool
+) -> list[str]:
     """
     Not end of round -> add card to pile
     End of round -> give pile to player and add their points up
     """
     card_pile = current_state["card_pile"]
     if end_of_round:
-        # TODO: new function for adding cards to losing players pile and dealing
-        # them leftover pile if they got the first hearts maybe separate from this function
+        # TODO: new function for adding cards to losing players pile and dealing them
+        # leftover pile if they got the first hearts maybe separate from this function
         return []
     card_pile.append(card)
     return card_pile
@@ -74,7 +76,7 @@ async def advance_game_state(
     turn_number = get_next_turn_number(current_state)
     if turn_number == 1:
         end_of_round = True
-    card_pile = await get_card_pile(current_state, card, end_of_round, redis)
+    card_pile = await get_card_pile(current_state, card, end_of_round)
     is_hearts_broken = is_broken(current_state, card)
     game_phase = GamePhase.ROUND_END if end_of_round else GamePhase.PLAYING
     round_number, game_number = get_round_and_game_number(current_state, end_of_round)

@@ -96,7 +96,7 @@ def make_room_state(redis_client):
                 "starting_card": starting_card,
                 "lead_suit": lead_suit,
                 "total_players": total_players,
-                "game_number": game_number
+                "game_number": game_number,
             },
         )
         if hand:

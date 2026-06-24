@@ -68,7 +68,7 @@ async def test_start_room_redis(redis_client):
         "round_number": "1",
         "turn_number": "1",
         "total_players": "5",
-        "game_number": "1"
+        "game_number": "1",
     }
     room = await redis_client.hgetall(f"room:{room_id}")
     assert room == {
