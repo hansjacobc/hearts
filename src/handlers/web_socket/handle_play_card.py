@@ -2,7 +2,7 @@ from redis.asyncio import Redis
 from src.handlers.web_socket.advance_game_state import advance_game_state
 from src.handlers.web_socket.connections import broadcast, send_to_player
 from src.handlers.web_socket.helpers import deserialize_state
-from src.rooms import GamePhase
+from src.rooms import TEN_MIN_TTL, GamePhase
 
 
 # pylint: disable=too-many-return-statements
@@ -71,6 +71,10 @@ async def handle_play_card(room_id: str, player_id: str, message: dict, redis: R
             },
         )
         return
+
+    # add player and their card to the trick
+    await redis.hset(f"room:{room_id}:trick", player_id, card)
+    await redis.expire("room:{room_id}:trick", TEN_MIN_TTL)
 
     # remove card from players hand
     await redis.lrem(f"room:{room_id}:hand:{player_id}", 0, card)

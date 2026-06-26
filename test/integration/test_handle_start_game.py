@@ -41,7 +41,7 @@ async def test_start_room_redis(redis_client):
     )
 
     assert start_game_resp.room_id == create_room_resp.room_id
-    assert start_game_resp.status == "PLAYING"
+    assert start_game_resp.status == "IN_PROGRESS"
     assert start_game_resp.starting_player_id != ""
     assert start_game_resp.turn_order
     for i in range(1, 6):
@@ -74,7 +74,7 @@ async def test_start_room_redis(redis_client):
     assert room == {
         "host_player_id": "player1",
         "max_players": "5",
-        "status": "PLAYING",
+        "status": "IN_PROGRESS",
     }
 
 
@@ -107,6 +107,6 @@ async def test_start_room_endpoint(client):
         },
     )
     resp_json = start_room_resp.json()
-    assert resp_json["status"] == "PLAYING"
+    assert resp_json["status"] == "IN_PROGRESS"
     assert resp_json["starting_player_id"] is not None
     assert len(resp_json["turn_order"]) == 5
