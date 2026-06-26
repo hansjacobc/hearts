@@ -79,7 +79,7 @@ async def handle_start_game(
     # Persist updated state
     pipe = redis.pipeline()
     for player_id, hand in hands.items():
-        await pipe.rpush(f"room:{room_id}:hand:{player_id}", *hand)
+        await pipe.sadd(f"room:{room_id}:hand:{player_id}", *hand)
         await pipe.expire(f"room:{room_id}:hand:{player_id}", ONE_HOUR_TTL)
 
     # remaining cards in the deck
@@ -112,7 +112,7 @@ async def handle_start_game(
     await pipe.hset(
         f"room:{room_id}",
         mapping={
-            "status": RoomStatus.PLAYING,
+            "status": RoomStatus.IN_PROGRESS,
         },
     )
     await pipe.expire(f"room:{room_id}", ONE_HOUR_TTL)
@@ -121,7 +121,7 @@ async def handle_start_game(
 
     return StartGameResponse(
         room_id=room_id,
-        status=RoomStatus.PLAYING,
+        status=RoomStatus.IN_PROGRESS,
         starting_player_id=starting_player_id,
         turn_order=turn_order,
     )

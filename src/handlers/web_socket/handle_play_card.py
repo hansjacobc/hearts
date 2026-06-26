@@ -19,7 +19,7 @@ async def is_valid_play(room_id: str, player_id: str, card: str, redis: Redis):
         return False
 
     # Check that the card is in their hand
-    player_hand = await redis.lrange(f"room:{room_id}:hand:{player_id}", 0, -1)
+    player_hand = await redis.smembers(f"room:{room_id}:hand:{player_id}")
     if card not in player_hand:
         return False
 
@@ -77,7 +77,7 @@ async def handle_play_card(room_id: str, player_id: str, message: dict, redis: R
     await redis.expire("room:{room_id}:trick", TEN_MIN_TTL)
 
     # remove card from players hand
-    await redis.lrem(f"room:{room_id}:hand:{player_id}", 0, card)
+    await redis.srem(f"room:{room_id}:hand:{player_id}", card)
 
     # advance game state
     player = await redis.hgetall(f"player:{player_id}")

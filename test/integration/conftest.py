@@ -100,6 +100,6 @@ def make_room_state(redis_client):
             },
         )
         if hand:
-            await redis_client.rpush(f"room:{room_id}:hand:{player_id}", *hand)
+            await redis_client.sadd(f"room:{room_id}:hand:{player_id}", *hand)
 
     return _make_room_state

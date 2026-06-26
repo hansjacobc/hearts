@@ -45,7 +45,7 @@ async def test_start_room_redis(redis_client):
     assert start_game_resp.starting_player_id != ""
     assert start_game_resp.turn_order
     for i in range(1, 6):
-        player_hand = await redis_client.lrange(f"room:{room_id}:hand:player{i}", 0, -1)
+        player_hand = await redis_client.smembers(f"room:{room_id}:hand:player{i}")
         assert len(player_hand) == 10
 
     left_over_cards = await redis_client.lrange(f"room:{room_id}:deck", 0, -1)

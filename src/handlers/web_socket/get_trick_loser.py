@@ -5,7 +5,9 @@ from src.rooms import GamePhase
 
 
 # pylint: disable=unused-argument
-async def handle_get_trick_loser(room_id: str, player_id: str, message: dict, redis: Redis):
+async def handle_get_trick_loser(
+    room_id: str, player_id: str, message: dict, redis: Redis
+):
     """Returns player id of the loser of the trick and clears the trick"""
 
     # read all played cards for the trick { player_id: card }
