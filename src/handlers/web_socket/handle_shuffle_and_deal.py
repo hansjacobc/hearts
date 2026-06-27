@@ -1,7 +1,8 @@
+# pylint: disable=duplicate-code
 import json
 
 from redis.asyncio import Redis
-from src.handlers.helpers import deserialize_state, deal_hands, find_starting_player
+from src.handlers.helpers import deal_hands, find_starting_player
 from src.rooms import ONE_HOUR_TTL, GamePhase
 
 
@@ -9,7 +10,6 @@ from src.rooms import ONE_HOUR_TTL, GamePhase
 async def handle_shuffle_and_deal(
     room_id: str, player_id: str, message: dict, redis: Redis
 ):
-    current_state = deserialize_state(await redis.hgetall(f"room:{room_id}:state"))
     player_ids = list(await redis.smembers(f"room:{room_id}:players"))
     num_players = len(player_ids)
 
@@ -21,9 +21,9 @@ async def handle_shuffle_and_deal(
 
     # Persist updated state
     pipe = redis.pipeline()
-    for player_id, hand in hands.items():
-        await pipe.sadd(f"room:{room_id}:hand:{player_id}", *hand)
-        await pipe.expire(f"room:{room_id}:hand:{player_id}", ONE_HOUR_TTL)
+    for p_id, hand in hands.items():
+        await pipe.sadd(f"room:{room_id}:hand:{p_id}", *hand)
+        await pipe.expire(f"room:{room_id}:hand:{p_id}", ONE_HOUR_TTL)
 
     # remaining cards in the deck
     await pipe.rpush(f"room:{room_id}:deck", *left_over_deck)

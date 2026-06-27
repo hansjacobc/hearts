@@ -42,11 +42,21 @@ async def handle_start_game(
     random.shuffle(player_ids)
     turn_order = player_ids
 
-    # Persist updated state
+    # Persist updated state and set initial scoes
     pipe = redis.pipeline()
     for player_id, hand in hands.items():
+        # hands
         await pipe.sadd(f"room:{room_id}:hand:{player_id}", *hand)
         await pipe.expire(f"room:{room_id}:hand:{player_id}", ONE_HOUR_TTL)
+
+        # scores
+        await pipe.hset(
+            f"room:{room_id}:score:{player_id}",
+            mapping={
+                "round_score": 0,
+                "game_score": 0,
+            },
+        )
 
     # remaining cards in the deck
     await pipe.rpush(f"room:{room_id}:deck", *left_over_deck)
@@ -55,6 +65,8 @@ async def handle_start_game(
     # establish turn order
     await pipe.rpush(f"room:{room_id}:turn_order", *turn_order)
     await pipe.expire(f"room:{room_id}:turn_order", ONE_HOUR_TTL)
+
+    # set initial scores
 
     # set game state
     await pipe.hset(

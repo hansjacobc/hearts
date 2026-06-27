@@ -1,5 +1,5 @@
 from redis.asyncio import Redis
-from src.handlers.helpers import deserialize_state
+from src.handlers.helpers import deserialize_state, find_trick_loser
 from src.handlers.web_socket.connections import broadcast
 from src.rooms import GamePhase
 
@@ -25,35 +25,43 @@ async def handle_get_trick_loser(
             },
         )
 
-    losing_player_id = ""
-    highest_rank = 15
-    lead_suit = current_state["lead_suit"]
-    for p_id, card in trick.items():
-        rank, suit = card.split("_")
-        if suit != lead_suit:
-            continue
-        if rank in ["A", "K", "Q", "J"]:
-            if rank == "A":
-                rank = 14
-            if rank == "K":
-                rank = 13
-            if rank == "Q":
-                rank = 12
-            if rank == "J":
-                rank = 11
-        rank = int(rank)
-        if rank > highest_rank:
-            highest_rank = rank
-            losing_player_id = p_id
+    losing_player_id = find_trick_loser(current_state["lead_suit"], trick)
 
     player = await redis.hgetall(f"player:{player_id}")
     nickname = player.get("nickname", "Anon")
 
+    # get round total points
+    score = 0
+    for card in trick.values():
+        if card == "Q_spades":
+            score += 13
+        if card.split[1] == "hearts":
+            score += 1
+
+    # check if there is a leftover deck and count toward player score if hearts in it
+    left_over_cards = await redis.lrange(f"room:{room_id}:deck", 0, -1)
+    if left_over_cards:
+        for card in left_over_cards:
+            if card.split[1] == "hearts":
+                score += 1
+
+        # delete deck once dealt out
+        await redis.delete(f"room:{room_id}:deck")
+
+    # updates round score
+    round_score = await redis.hget(
+        f"room:{room_id}:score:{losing_player_id}", "round_score"
+    )
+
+    await redis.hset(
+        f"room:{room_id}:score:{losing_player_id}",
+        mapping={
+            "round_score": round_score + score,
+        },
+    )
     # clear the trick
     await redis.delete(f"room:{room_id}:trick")
 
-    # trick is just the cards played for a single round, don't need to pass after this
-    # do need to calc score and hand out cards from await pipe.rpush(f"room:{room_id}:deck", *left_over_deck)
     # set phase in game state to passing
     await redis.hset(f"room:{room_id}:state", "phase", GamePhase.PASSING)
 

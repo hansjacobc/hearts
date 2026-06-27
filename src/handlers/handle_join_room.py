@@ -13,7 +13,6 @@ async def handle_join_room(
     Validate player is not already in room.
     Persist updated state.
     """
-    players_key = f"room:{room_id}:players"
 
     # Validate room exists
     room_exists = await redis.exists(f"room:{room_id}")
@@ -27,19 +26,19 @@ async def handle_join_room(
     max_players = int(room_data["max_players"])
 
     # Validate room is not full
-    current_players = await redis.scard(players_key)
+    current_players = await redis.scard(f"room:{room_id}:players")
     if current_players >= max_players:
         raise ValueError("Room is full")
 
     # Validate player is not already in room
     already_in_room = await redis.sismember(
-        players_key,
+        f"room:{room_id}:players",
         request.player_id,
     )
     if already_in_room:
         raise ValueError("Player already in room")
 
-    await redis.sadd(players_key, request.player_id)
+    await redis.sadd(f"room:{room_id}:players", request.player_id)
 
     return JoinRoomResponse(
         room_id=room_id,

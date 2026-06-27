@@ -53,3 +53,27 @@ def deal_hands(num_players: int, player_ids: list[str]):
         hands[player_id] = deck[:hand_size]
         deck = deck[hand_size:]
     return hands, deck
+
+
+def find_trick_loser(lead_suit: str, trick: dict):
+    losing_player_id = ""
+    highest_rank = 15
+    for p_id, card in trick.items():
+        rank, suit = card.split("_")
+        if suit != lead_suit:
+            continue
+        if rank in ["A", "K", "Q", "J"]:
+            if rank == "A":
+                rank = 14
+            if rank == "K":
+                rank = 13
+            if rank == "Q":
+                rank = 12
+            if rank == "J":
+                rank = 11
+        rank = int(rank)
+        if rank > highest_rank:
+            highest_rank = rank
+            losing_player_id = p_id
+
+    return losing_player_id
