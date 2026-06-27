@@ -4,7 +4,6 @@ from src.handlers.web_socket.helpers import deserialize_state
 from src.rooms import GamePhase
 
 
-# pylint: disable=unused-argument
 async def handle_pass_cards(room_id: str, player_id: str, message: dict, redis: Redis):
     """
     Determines passing direction from current game number and has
