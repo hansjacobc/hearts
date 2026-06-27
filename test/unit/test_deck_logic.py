@@ -1,5 +1,5 @@
 from src.cards import DeckOfCards
-from src.handlers.handle_start_game import deal_hands, find_starting_player
+from src.handlers.helpers import deal_hands, find_starting_player
 from src.player import Player
 
 

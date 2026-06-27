@@ -1,6 +1,6 @@
 from redis.asyncio import Redis
-from src.handlers.web_socket.connections import broadcast
 from src.handlers.helpers import deserialize_state
+from src.handlers.web_socket.connections import broadcast
 from src.rooms import GamePhase
 
 
@@ -52,6 +52,8 @@ async def handle_get_trick_loser(
     # clear the trick
     await redis.delete(f"room:{room_id}:trick")
 
+    # trick is just the cards played for a single round, don't need to pass after this
+    # do need to calc score and hand out cards from await pipe.rpush(f"room:{room_id}:deck", *left_over_deck)
     # set phase in game state to passing
     await redis.hset(f"room:{room_id}:state", "phase", GamePhase.PASSING)
 

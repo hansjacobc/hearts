@@ -2,43 +2,9 @@ import json
 import random
 
 from redis.asyncio import Redis
+from src.handlers.helpers import deal_hands, find_starting_player
 from src.rooms import ONE_HOUR_TTL, GamePhase, RoomStatus
 from src.schemas import StartGameRequest, StartGameResponse
-
-SUITS = ["spades", "hearts", "diamonds", "clubs"]
-RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
-
-
-def deal_hands(num_players: int, player_ids: list[str]):
-    """Deal out even sized hands of all cards and keep track of left over cards"""
-
-    deck = [f"{rank}_{suit}" for suit in SUITS for rank in RANKS]
-    random.shuffle(deck)
-
-    hand_size = 52 // num_players
-    hands = {}
-    for player_id in player_ids:
-        hands[player_id] = deck[:hand_size]
-        deck = deck[hand_size:]
-    return hands, deck
-
-
-def find_starting_player(
-    hands: dict[str, list[str]], left_over_deck: list[str]
-) -> tuple[str, str]:
-    """
-    Want to find the player with 2 of clubs since they start.
-    Also have to account for the fact that the 2 of clubs can be in the leftover pile.
-    """
-    starting_player_id = ""
-    starting_card = "2_clubs"
-    for i in range(3, 7):
-        if starting_card in left_over_deck:
-            starting_card = f"{i}_clubs"
-    for player_id, hand in hands.items():
-        if starting_card in hand:
-            starting_player_id = player_id
-    return starting_player_id, starting_card
 
 
 async def handle_start_game(

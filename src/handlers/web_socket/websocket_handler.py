@@ -1,13 +1,12 @@
 from typing import Awaitable, Callable
 
 from redis.asyncio import Redis
-
-from src.handlers.web_socket.handle_shuffle_and_deal import handle_shuffle_and_deal
 from src.handlers.web_socket.connections import get_room_lock, send_to_player
-from src.handlers.web_socket.handle_get_trick_loser import handle_get_trick_loser
 from src.handlers.web_socket.handle_get_state import handle_get_state
+from src.handlers.web_socket.handle_get_trick_loser import handle_get_trick_loser
 from src.handlers.web_socket.handle_pass_cards import handle_pass_cards
 from src.handlers.web_socket.handle_play_card import handle_play_card
+from src.handlers.web_socket.handle_shuffle_and_deal import handle_shuffle_and_deal
 
 ActionHandler = Callable[[str, str, dict, Redis], Awaitable[None]]
 
