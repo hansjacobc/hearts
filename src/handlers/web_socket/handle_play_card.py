@@ -1,7 +1,7 @@
 from redis.asyncio import Redis
 from src.handlers.web_socket.advance_game_state import advance_game_state
 from src.handlers.web_socket.connections import broadcast, send_to_player
-from src.handlers.web_socket.helpers import deserialize_state
+from src.handlers.helpers import deserialize_state
 from src.rooms import TEN_MIN_TTL, GamePhase
 
 

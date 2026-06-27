@@ -18,10 +18,3 @@ def deserialize_state(raw: dict) -> dict:
         "starting_card": raw["starting_card"],
         "total_players": int(raw["total_players"]),
     }
-
-
-async def determine_losing_player_and_add_score():
-    """
-    The losing player is the player who played the highest value card of the lead suit.
-    Cards played not in the lead suit cannot win the round.
-    """
