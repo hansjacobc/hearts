@@ -20,7 +20,7 @@ async def test_is_valid_game_phase_not_playing(redis_client, make_room_state):
     player_id = "1234"
 
     await make_room_state(
-        room_id, player_id, hand=["2_clubs", "A_spades"], phase=GamePhase.ROUND_END
+        room_id, player_id, hand=["2_clubs", "A_spades"], phase=GamePhase.TRICK_END
     )
 
     is_valid = await is_valid_play(room_id, player_id, "2_clubs", redis_client)

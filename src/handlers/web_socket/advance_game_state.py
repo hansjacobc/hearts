@@ -22,14 +22,14 @@ def get_next_turn_number(current_state: dict) -> int:
 
 
 async def get_card_pile(
-    current_state: dict, card: str, end_of_round: bool
+    current_state: dict, card: str, end_of_trick: bool
 ) -> list[str]:
     """
     Not end of round -> add card to pile
     End of round -> give pile to player and add their points up
     """
     card_pile = current_state["card_pile"]
-    if end_of_round:
+    if end_of_trick:
         return []
     card_pile.append(card)
     return card_pile
@@ -48,19 +48,26 @@ def is_broken(current_state: dict, card: str) -> int:
     return 0
 
 
-def get_round_and_game_number(current_state: dict, end_of_round: bool):
+def get_round_and_game_number(current_state: dict, end_of_trick: bool):
     round_number = current_state["round_number"]
     game_number = current_state["game_number"]
-    if end_of_round:
-        round_number = 1
-        game_number += 1
+    num_players = current_state["num_players"]
+    max_rounds = 52 // num_players
+    
+    if end_of_trick:
+        if round_number == max_rounds:
+            round_number = 1
+            game_number += 1
+        else:
+            round_number += 1
+
 
     return round_number, game_number
 
 
-def get_lead_suit(current_state: dict, end_of_round: bool) -> str:
+def get_lead_suit(current_state: dict, end_of_trick: bool) -> str:
     """If end of round, set lead suit to OPEN. If not keep current lead suit"""
-    if end_of_round:
+    if end_of_trick:
         return "OPEN"
     return current_state["lead_suit"]
 
@@ -68,17 +75,17 @@ def get_lead_suit(current_state: dict, end_of_round: bool) -> str:
 async def advance_game_state(
     room_id: str, player_id: str, card: str, nickname: str, redis: Redis
 ):
-    end_of_round = False
+    end_of_trick = False
     current_state = deserialize_state(await redis.hgetall(f"room:{room_id}:state"))
     next_player = await get_next_player(room_id, player_id, redis)
     turn_number = get_next_turn_number(current_state)
     if turn_number == 1:
-        end_of_round = True
-    card_pile = await get_card_pile(current_state, card, end_of_round)
+        end_of_trick = True
+    card_pile = await get_card_pile(current_state, card, end_of_trick)
     is_hearts_broken = is_broken(current_state, card)
-    game_phase = GamePhase.ROUND_END if end_of_round else GamePhase.PLAYING
-    round_number, game_number = get_round_and_game_number(current_state, end_of_round)
-    lead_suit = get_lead_suit(current_state, end_of_round)
+    game_phase = GamePhase.TRICK_END if end_of_trick else GamePhase.PLAYING
+    round_number, game_number = get_round_and_game_number(current_state, end_of_trick)
+    lead_suit = get_lead_suit(current_state, end_of_trick)
     # set new state
     await redis.hset(
         f"room:{room_id}:state",
