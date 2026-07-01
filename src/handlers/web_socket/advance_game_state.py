@@ -49,18 +49,21 @@ def is_broken(current_state: dict, card: str) -> int:
 
 
 def get_round_and_game_number(current_state: dict, end_of_trick: bool):
+    """
+    Round number resets to 1 once we're at the last round and end of trick.
+    Game number increases after last round and is unbounded
+    """
     round_number = current_state["round_number"]
     game_number = current_state["game_number"]
     num_players = current_state["num_players"]
-    max_rounds = 52 // num_players
-    
+    last_round = 52 // num_players
+
     if end_of_trick:
-        if round_number == max_rounds:
+        if round_number == last_round:
             round_number = 1
             game_number += 1
         else:
             round_number += 1
-
 
     return round_number, game_number
 
