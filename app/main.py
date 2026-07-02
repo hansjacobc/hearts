@@ -1,3 +1,5 @@
+import logging
+
 from app.dependencies import get_redis
 from app.lifespan import lifespan
 from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
@@ -25,6 +27,8 @@ from src.schemas import (
     StartGameResponse,
 )
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI(lifespan=lifespan)
 
 
@@ -50,7 +54,14 @@ async def game_socket(
     try:
         while True:
             message = await websocket.receive_json()
-            await handle_websocket_action(room_id, player_id, message, redis)
+            try:
+                await handle_websocket_action(room_id, player_id, message, redis)
+            except Exception as e:
+                logger.exception(
+                    f"Exception caught handling message:{message}\n"
+                    f"Exception: {e}"
+                )
+                raise
     except WebSocketDisconnect:
         unregister_web_socket(room_id, player_id)
         await broadcast(
