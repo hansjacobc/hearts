@@ -14,7 +14,7 @@ async def get_next_player(room_id: str, current_player_id: str, redis: Redis) ->
 
 def get_next_turn_number(current_state: dict) -> int:
     turn_number = current_state["turn_number"]
-    num_players = current_state["num_players"]
+    num_players = current_state["total_players"]
     turn_number += 1
     if turn_number == num_players:
         turn_number = 1
@@ -55,7 +55,7 @@ def get_round_and_game_number(current_state: dict, end_of_trick: bool):
     """
     round_number = current_state["round_number"]
     game_number = current_state["game_number"]
-    num_players = current_state["num_players"]
+    num_players = current_state["total_players"]
     last_round = 52 // num_players
 
     if end_of_trick:

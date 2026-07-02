@@ -4,14 +4,14 @@ from contextlib import asynccontextmanager
 
 import pytest
 import pytest_asyncio
-from httpx_ws import aconnect_ws
-from httpx_ws.transport import ASGIWebSocketTransport
-from src.handlers.web_socket.connections import _room_connections, _room_locks
 from app.dependencies import get_redis
 from app.main import app
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from httpx_ws import aconnect_ws
+from httpx_ws.transport import ASGIWebSocketTransport
 from redis.asyncio import Redis
+from src.handlers.web_socket.connections import _room_connections, _room_locks
 from src.rooms import GamePhase
 
 
@@ -71,8 +71,8 @@ def make_room_state(redis_client):
     async def _make_room_state(
         room_id: str,
         player_id: str,
-        hand: list[str],
         *,
+        hand: list[str] = None,
         current_turn_player_id: str | None = None,
         turn_number: int = 1,
         card_pile: list[str] | None = None,
@@ -110,14 +110,35 @@ def make_room_state(redis_client):
 
 
 @pytest_asyncio.fixture
+def setup_players_hands(redis_client):
+    """
+    Factory fixture for setting up players hands in redis
+    Also sets turn order in the order of player ids in the dict
+    """
+
+    # pylint: disable=too-many-arguments
+    async def _setup_players_hands(room_id: str, players_hands: dict):
+        player_ids = []
+        for player_id, cards in players_hands.items():
+            await redis_client.sadd(f"room:{room_id}:hand:{player_id}", *cards)
+            player_ids.append(player_id)
+
+        await redis_client.rpush(f"room:{room_id}:turn_order", *player_ids)
+
+    return _setup_players_hands
+
+
+@pytest_asyncio.fixture
 async def ws_transport(app_with_redis):
     return ASGIWebSocketTransport(app=app_with_redis)
+
 
 @asynccontextmanager
 async def open_ws(ws_transport, path):
     async with AsyncClient(transport=ws_transport, base_url="http://test") as client:
         async with aconnect_ws(path, client) as ws:
             yield ws
+
 
 @pytest.fixture(autouse=True)
 def reset_connections():
