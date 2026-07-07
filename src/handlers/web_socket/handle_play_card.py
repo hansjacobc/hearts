@@ -60,7 +60,7 @@ async def is_valid_play(room_id: str, player_id: str, card: str, redis: Redis):
 async def handle_play_card(room_id: str, player_id: str, message: dict, redis: Redis):
     card = message.get("card")
 
-    if not is_valid_play(room_id, player_id, card, redis):
+    if not await is_valid_play(room_id, player_id, card, redis):
         await send_to_player(
             room_id,
             player_id,

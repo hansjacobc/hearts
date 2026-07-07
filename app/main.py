@@ -58,7 +58,7 @@ async def game_socket(
                 await handle_websocket_action(room_id, player_id, message, redis)
             except Exception as e:
                 logger.exception(
-                    f"Exception caught handling message:%s\n" f"Exception: %s",
+                    "Exception caught handling message:%s\nException: %s",
                     message,
                     e,
                 )

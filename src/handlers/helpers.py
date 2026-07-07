@@ -57,7 +57,7 @@ def deal_hands(num_players: int, player_ids: list[str]):
 
 def find_trick_loser(lead_suit: str, trick: dict):
     losing_player_id = ""
-    highest_rank = 15
+    highest_rank = 1
     for p_id, card in trick.items():
         rank, suit = card.split("_")
         if suit != lead_suit:

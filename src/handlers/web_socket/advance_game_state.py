@@ -5,7 +5,11 @@ from src.handlers.helpers import deserialize_state
 from src.rooms import GamePhase
 
 
-async def get_next_player(room_id: str, current_player_id: str, redis: Redis) -> str:
+async def get_next_player(
+    turn_number: int, room_id: str, current_player_id: str, redis: Redis
+) -> str:
+    if turn_number == 1:
+        return ""
     turn_order = await redis.lrange(f"room:{room_id}:turn_order", 0, -1)
     current_index = turn_order.index(current_player_id)
     next_index = (current_index + 1) % len(turn_order)
@@ -16,7 +20,7 @@ def get_next_turn_number(current_state: dict) -> int:
     turn_number = current_state["turn_number"]
     num_players = current_state["total_players"]
     turn_number += 1
-    if turn_number == num_players:
+    if turn_number > num_players:
         turn_number = 1
     return turn_number
 
@@ -68,10 +72,11 @@ def get_round_and_game_number(current_state: dict, end_of_trick: bool):
     return round_number, game_number
 
 
-def get_lead_suit(current_state: dict, end_of_trick: bool) -> str:
+def get_lead_suit(current_state: dict, turn_number: int, card: str) -> str:
     """If end of round, set lead suit to OPEN. If not keep current lead suit"""
-    if end_of_trick:
-        return "OPEN"
+    if turn_number == 2:
+        suit = card.split("_")[1]
+        return suit
     return current_state["lead_suit"]
 
 
@@ -80,15 +85,15 @@ async def advance_game_state(
 ):
     end_of_trick = False
     current_state = deserialize_state(await redis.hgetall(f"room:{room_id}:state"))
-    next_player = await get_next_player(room_id, player_id, redis)
     turn_number = get_next_turn_number(current_state)
+    next_player = await get_next_player(turn_number, room_id, player_id, redis)
     if turn_number == 1:
         end_of_trick = True
     card_pile = await get_card_pile(current_state, card, end_of_trick)
     is_hearts_broken = is_broken(current_state, card)
     game_phase = GamePhase.TRICK_END if end_of_trick else GamePhase.PLAYING
     round_number, game_number = get_round_and_game_number(current_state, end_of_trick)
-    lead_suit = get_lead_suit(current_state, end_of_trick)
+    lead_suit = get_lead_suit(current_state, turn_number, card)
     # set new state
     await redis.hset(
         f"room:{room_id}:state",

@@ -140,6 +140,21 @@ async def open_ws(ws_transport, path):
             yield ws
 
 
+@pytest_asyncio.fixture
+def ws_action(ws_transport):
+    """
+    Open a websocket for a player, send one message, and return the response.
+    Connection is closed automatically after receiving.
+    """
+
+    async def _ws_action(room_id, player_id, message):
+        async with open_ws(ws_transport, f"/ws/{room_id}/{player_id}") as ws:
+            await ws.send_json(message)
+            return await ws.receive_json()
+
+    return _ws_action
+
+
 @pytest.fixture(autouse=True)
 def reset_connections():
     _room_connections.clear()

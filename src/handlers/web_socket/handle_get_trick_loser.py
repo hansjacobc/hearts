@@ -15,7 +15,7 @@ async def handle_get_trick_loser(
 
     current_state = deserialize_state(await redis.hgetall(f"room:{room_id}:state"))
 
-    if current_state != GamePhase.TRICK_END:
+    if current_state["phase"] != GamePhase.TRICK_END:
         await broadcast(
             room_id,
             {
@@ -35,14 +35,14 @@ async def handle_get_trick_loser(
     for card in trick.values():
         if card == "Q_spades":
             score += 13
-        if card.split[1] == "hearts":
+        if card.split("_")[1] == "hearts":
             score += 1
 
     # check if there is a leftover deck and count toward player score if hearts in it
     left_over_cards = await redis.lrange(f"room:{room_id}:deck", 0, -1)
     if left_over_cards:
         for card in left_over_cards:
-            if card.split[1] == "hearts":
+            if card.split("_")[1] == "hearts":
                 score += 1
 
         # delete deck once dealt out
@@ -53,6 +53,8 @@ async def handle_get_trick_loser(
         f"room:{room_id}:score:{losing_player_id}", "round_score"
     )
 
+    round_score = int(round_score)
+
     await redis.hset(
         f"room:{room_id}:score:{losing_player_id}",
         mapping={
@@ -62,9 +64,15 @@ async def handle_get_trick_loser(
     # clear the trick
     await redis.delete(f"room:{room_id}:trick")
 
-    # set phase in game state to passing
-    await redis.hset(f"room:{room_id}:state", "phase", GamePhase.PASSING)
-
+    # set phase in game state to playing and current turn to trick loser
+    await redis.hset(
+        f"room:{room_id}:state",
+        mapping={
+            "current_turn_player_id": losing_player_id,
+            "phase": GamePhase.PLAYING,
+            "lead_suit": "OPEN",
+        },
+    )
     await broadcast(
         room_id,
         {
