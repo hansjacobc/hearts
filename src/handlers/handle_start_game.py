@@ -42,7 +42,7 @@ async def handle_start_game(
     random.shuffle(player_ids)
     turn_order = player_ids
 
-    # Persist updated state and set initial scoes
+    # Persist updated state and set initial scores
     pipe = redis.pipeline()
     for player_id, hand in hands.items():
         # hands
@@ -65,8 +65,6 @@ async def handle_start_game(
     # establish turn order
     await pipe.rpush(f"room:{room_id}:turn_order", *turn_order)
     await pipe.expire(f"room:{room_id}:turn_order", ONE_HOUR_TTL)
-
-    # set initial scores
 
     # set game state
     await pipe.hset(
