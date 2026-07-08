@@ -3,21 +3,21 @@ repos:
     rev: 5.12.0
     hooks:
       - id: isort
-        args: [--settings-path=config/pyproject.toml]
+        args: [--settings-path=backend/config/pyproject.toml]
   - repo: https://github.com/PyCQA/flake8
     rev: 6.1.0
     hooks:
       - id: flake8
-        args: [--config=config/.flake8]
+        args: [--config=backend/config/.flake8]
   - repo: https://github.com/PyCQA/pylint
     rev: v3.0.2
     hooks:
       - id: pylint
-        args: [--rcfile=config/.pylintrc]
+        args: [--rcfile=backend/config/.pylintrc]
         additional_dependencies: [fastapi, uvicorn, redis]
   - repo: https://github.com/psf/black
     rev: 23.7.0
     hooks:
       - id: black
-        args: [--config=config/pyproject.toml]
+        args: [--config=backend/config/pyproject.toml]
         language_version: python3.13
