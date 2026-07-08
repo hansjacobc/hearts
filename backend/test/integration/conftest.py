@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 import pytest
 import pytest_asyncio
-from app.dependencies import get_redis
+from app.dependencies import get_redis, get_redis_ws
 from app.main import app
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
@@ -40,7 +40,7 @@ def test_app() -> FastAPI:
 @pytest_asyncio.fixture
 async def app_with_redis(test_app, redis_client):
     test_app.dependency_overrides[get_redis] = lambda: redis_client
-
+    test_app.dependency_overrides[get_redis_ws] = lambda: redis_client
     yield test_app
 
     test_app.dependency_overrides.clear()
