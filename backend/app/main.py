@@ -1,6 +1,6 @@
 import logging
 
-from app.dependencies import get_redis
+from app.dependencies import get_redis, get_redis_ws
 from app.lifespan import lifespan
 from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
 from redis.asyncio import Redis
@@ -46,7 +46,7 @@ async def game_socket(
     websocket: WebSocket,
     room_id: str,
     player_id: str,
-    redis: Redis = Depends(get_redis),
+    redis: Redis = Depends(get_redis_ws),
 ):
     await websocket.accept()
     register_web_socket(room_id, player_id, websocket)

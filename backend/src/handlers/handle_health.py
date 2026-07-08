@@ -1,2 +1,2 @@
-def handle_health():
+async def handle_health():
     return {"status": "ok"}

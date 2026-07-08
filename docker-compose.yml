@@ -1,6 +1,6 @@
 services:
   api:
-    build: .
+    build: ./backend
     ports:
       - "8000:8000"
     depends_on:
@@ -12,3 +12,16 @@ services:
     image: redis:7
     ports:
       - "6379:6379"
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: yarn dev --host
+    environment:
+      VITE_WS_URL: ws://localhost:8000/ws
+    depends_on:
+      - api
