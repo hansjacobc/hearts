@@ -1,12 +1,15 @@
-import { useGameSocket } from './useGameSocket'
+import { Routes, Route } from "react-router-dom";
+import Welcome from "./pages/Welcome";
+import Lobby from "./pages/Lobby";
+import Game from "./pages/Game";
 
 function App() {
-  const status = useGameSocket("test-room", "test-player");
   return (
-    <div>
-      <h1>Hearts</h1>
-      <p>Socket status: {status}</p>
-    </div>
+    <Routes>
+      <Route path="/" element={<Welcome />} />
+      <Route path="/lobby" element={<Lobby />} />
+      <Route path="/game" element={<Game />} />
+    </Routes>
   );
 }
 
