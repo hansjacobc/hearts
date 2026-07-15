@@ -8,7 +8,7 @@ const HEARTS: CardSpec[] = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "
 );
 const CARDS: CardSpec[] = [...HEARTS, { rank: "Q", suit: "spades" }];
 
-const SPEED = 55; // px/s — identical for every card
+const SPEED = 100; // px/s — identical for every card
 const MARGIN = 120; // spawn buffer outside the viewport
 const DESPAWN_MARGIN = MARGIN * 2;
 
@@ -97,7 +97,7 @@ function FloatingCard({ card }: { card: CardSpec }) {
       src={`/cards/basic/${card.rank}_${card.suit}.svg`}
       alt=""
       aria-hidden="true"
-      className="absolute w-16 h-auto opacity-25 select-none pointer-events-none drop-shadow-md"
+      className="absolute w-16 h-auto opacity-100 select-none pointer-events-none drop-shadow-md"
       style={{ x, y, rotate }}
     />
   );
