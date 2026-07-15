@@ -15,9 +15,7 @@ const DESPAWN_MARGIN = MARGIN * 2;
 function randomSpawn(w: number, h: number) {
   const edge = Math.floor(Math.random() * 4); // 0 top, 1 right, 2 bottom, 3 left
   const spread = (Math.PI / 180) * 50; // ±50° off the inward normal, so it actually crosses the screen
-  let x = 0,
-    y = 0,
-    angle = 0;
+  let x, y, angle;
 
   switch (edge) {
     case 0:
