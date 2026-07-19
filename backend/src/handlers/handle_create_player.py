@@ -1,5 +1,6 @@
 import secrets
 
+from fastapi import HTTPException
 from redis.asyncio import Redis
 from src.rooms import TWO_HOUR_TTL
 from src.schemas import CreatePlayerRequest, CreatePlayerResponse
@@ -13,7 +14,10 @@ async def handle_create_player(request: CreatePlayerRequest, redis: Redis):
         f"nickname:{nickname}", "__reserved__", nx=True, ex=TWO_HOUR_TTL
     )
     if not is_unique:
-        raise ValueError("Nickname already taken")
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "NICKNAME_TAKEN", "message": "Nickname already taken"},
+        )
 
     player_id = secrets.token_hex(3)
 
