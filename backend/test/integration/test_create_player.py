@@ -38,5 +38,3 @@ async def test_create_player_endpoint_taken_name(client):
     resp_json = response2.json()
     assert resp_json["detail"]["code"] == "NICKNAME_TAKEN"
     assert resp_json["detail"]["message"] == "Nickname already taken"
-
-
