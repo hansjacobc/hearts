@@ -1,5 +1,7 @@
 import logging
 
+from starlette.middleware.cors import CORSMiddleware
+
 from app.dependencies import get_redis, get_redis_ws
 from app.lifespan import lifespan
 from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
@@ -30,6 +32,13 @@ from src.schemas import (
 logger = logging.getLogger(__name__)
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # Vite localhost port
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")

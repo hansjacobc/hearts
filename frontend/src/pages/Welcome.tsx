@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import CardsBackdrop from "../components/CardsBackdrop";
+import { createPlayer, ApiError } from "../api/players";
 
 export default function Welcome() {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const { dispatch } = useGame();
   const navigate = useNavigate();
 
@@ -16,19 +18,25 @@ export default function Welcome() {
     };
   }, []);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || submitting) return;
     setError(null);
+    setSubmitting(true);
 
-    // TODO: replace with real backend call, e.g.
-    // const res = await fetch(`${import.meta.env.VITE_API_BASE}/users`, { method: "POST", body: JSON.stringify({ name }) });
-    // if (res.status === 409) { setError("That username is taken."); return; }
-    // const { userId } = await res.json();
-    const fakeUserId = crypto.randomUUID();
-
-    dispatch({ type: "SET_USER", username: name, userId: fakeUserId });
-    navigate("/lobby");
+    try {
+      const { player_id, nickname } = await createPlayer(name.trim());
+      dispatch({ type: "SET_USER", username: nickname, userId: player_id });
+      navigate("/lobby");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Couldn't reach the server. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -46,13 +54,15 @@ export default function Welcome() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           autoFocus
+          disabled={submitting}
         />
         {error && <p className="text-red-600 text-sm -mt-2">{error}</p>}
         <button
           type="submit"
-          className="bg-green-700 text-white rounded px-3 py-2 font-semibold hover:bg-green-800"
+          disabled={submitting}
+          className="bg-green-700 text-white rounded px-3 py-2 font-semibold hover:bg-green-800 disabled:opacity-50"
         >
-          Continue
+          {submitting ? "Joining..." : "Continue"}
         </button>
       </form>
     </div>
