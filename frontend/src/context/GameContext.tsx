@@ -15,7 +15,9 @@ interface GameState {
 
 type Action =
   | { type: "SET_USER"; username: string; userId: string }
-  | { type: "SET_LOBBY"; lobbyId: string; players: Player[] }
+  | { type: "SET_LOBBY_ID"; lobbyId: string }
+  | { type: "MERGE_PLAYERS"; players: Player[] }
+  | { type: "PLAYER_LEFT"; playerId: string }
   | { type: "RESET" };
 
 const initialState: GameState = {
@@ -25,12 +27,24 @@ const initialState: GameState = {
   players: [],
 };
 
+function mergePlayers(existing: Player[], incoming: Player[]): Player[] {
+  const byId = new Map(existing.map((p) => [p.id, p]));
+  for (const p of incoming) {
+    byId.set(p.id, p); // incoming wins on conflict (REST/socket data is authoritative)
+  }
+  return Array.from(byId.values());
+}
+
 function reducer(state: GameState, action: Action): GameState {
   switch (action.type) {
     case "SET_USER":
       return { ...state, username: action.username, userId: action.userId };
-    case "SET_LOBBY":
-      return { ...state, lobbyId: action.lobbyId, players: action.players };
+    case "SET_LOBBY_ID":
+      return { ...state, lobbyId: action.lobbyId };
+    case "MERGE_PLAYERS":
+      return { ...state, players: mergePlayers(state.players, action.players) };
+    case "PLAYER_LEFT":
+      return { ...state, players: state.players.filter((p) => p.id !== action.playerId) };
     case "RESET":
       return initialState;
     default:
@@ -38,8 +52,8 @@ function reducer(state: GameState, action: Action): GameState {
   }
 }
 
-const GameContext = createContext<
-  { state: GameState; dispatch: React.Dispatch<Action> } | undefined
+const GameContext = createContext
+  <{ state: GameState; dispatch: React.Dispatch<Action> } | undefined
 >(undefined);
 
 export function GameProvider({ children }: { children: ReactNode }) {

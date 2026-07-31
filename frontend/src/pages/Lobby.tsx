@@ -1,8 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import CardsBackdrop from "../components/CardsBackdrop";
 import { createRoom, joinRoom, startGame, ApiError } from "../api/rooms";
+import { useGameSocket } from "../useGameSocket";
+
+interface PlayerInfo {
+  id: string;
+  name: string;
+  is_host: boolean;
+}
 
 export default function Lobby() {
   const { state, dispatch } = useGame();
@@ -10,9 +17,36 @@ export default function Lobby() {
   const [numPlayers, setNumPlayers] = useState(4);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [activeRoomId, setActiveRoomId] = useState(""); // drives socket connection
+  const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const isHost = state.players[0]?.id === state.userId;
+  const isHost = state.players.find((p) => p.id === state.userId)?.isHost ?? false;
+
+  function handleSocketMessage(data: unknown) {
+    if (typeof data !== "object" || data === null || !("type" in data)) return;
+    const msg = data as { type: string; [key: string]: unknown };
+
+    if (msg.type === "player_joined" && msg.player) {
+      const p = msg.player as PlayerInfo;
+      dispatch({
+        type: "MERGE_PLAYERS",
+        players: [{ id: p.id, name: p.name, isHost: p.is_host }],
+      });
+    } else if (msg.type === "player_disconnected" && typeof msg.player_id === "string") {
+      dispatch({ type: "PLAYER_LEFT", playerId: msg.player_id });
+    }
+  }
+
+  const status = useGameSocket(activeRoomId, state.userId, handleSocketMessage);
+
+  // once the socket is connected for a pending join, fire the REST join call
+  useEffect(() => {
+    if (pendingJoinCode && status === "connected") {
+      void doJoin(pendingJoinCode);
+      setPendingJoinCode(null);
+    }
+  }, [status, pendingJoinCode]);
 
   async function handleCreate() {
     if (submitting) return;
@@ -20,12 +54,12 @@ export default function Lobby() {
     setSubmitting(true);
     try {
       const { room_id } = await createRoom(state.userId, numPlayers);
+      dispatch({ type: "SET_LOBBY_ID", lobbyId: room_id });
       dispatch({
-        type: "SET_LOBBY",
-        lobbyId: room_id,
-        // TODO: other players will arrive via the socket once roster sync is wired up
+        type: "MERGE_PLAYERS",
         players: [{ id: state.userId, name: state.username, isHost: true }],
       });
+      setActiveRoomId(room_id); // now safe to connect, room exists
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Couldn't reach the server. Please try again.");
     } finally {
@@ -33,20 +67,29 @@ export default function Lobby() {
     }
   }
 
-  async function handleJoin() {
+  function handleJoin() {
     if (!joinCode.trim() || submitting) return;
     setError(null);
+    setActiveRoomId(joinCode.trim()); // open socket first
+    setPendingJoinCode(joinCode.trim()); // REST call fires once connected
+  }
+
+  async function doJoin(roomId: string) {
     setSubmitting(true);
     try {
-      const { room_id } = await joinRoom(joinCode.trim(), state.userId);
+      const { room_id, players_in_room } = await joinRoom(roomId, state.userId);
+      dispatch({ type: "SET_LOBBY_ID", lobbyId: room_id });
       dispatch({
-        type: "SET_LOBBY",
-        lobbyId: room_id,
-        // TODO: existing players in the room will arrive via the socket
-        players: [{ id: state.userId, name: state.username, isHost: false }],
+        type: "MERGE_PLAYERS",
+        players: (players_in_room).map((p) => ({
+          id: p.id,
+          name: p.name,
+          isHost: p.is_host,
+        })),
       });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Couldn't reach the server. Please try again.");
+      setActiveRoomId(""); // tear down the socket, join failed
     } finally {
       setSubmitting(false);
     }

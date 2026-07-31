@@ -6,9 +6,16 @@ export interface CreateRoomResponse {
   num_players: number;
 }
 
+export interface PlayerInfo {
+  id: string;
+  name: string;
+  is_host: boolean;
+}
+
 export interface JoinRoomResponse {
   room_id: string;
   player_id: string;
+  players_in_room: PlayerInfo[]
 }
 
 export interface StartGameResponse {
