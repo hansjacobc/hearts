@@ -36,11 +36,20 @@ class JoinRoomRequest(BaseModel):
     player_id: str
 
 
+class PlayerInfo(BaseModel):
+    """Basic player info for when joining a room"""
+
+    id: str
+    name: str
+    is_host: bool
+
+
 class JoinRoomResponse(BaseModel):
     """Verifies that the user has joined the room successfully"""
 
     room_id: str
     player_id: str
+    players_in_room: list[PlayerInfo]
 
 
 class StartGameRequest(BaseModel):

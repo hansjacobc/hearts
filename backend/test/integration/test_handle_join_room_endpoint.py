@@ -1,11 +1,15 @@
 import pytest
 from src.handlers.handle_create_room import handle_create_room
 from src.handlers.handle_join_room import handle_join_room
-from src.schemas import CreateRoomRequest, JoinRoomRequest
+from src.schemas import CreateRoomRequest, JoinRoomRequest, PlayerInfo
 
 
 @pytest.mark.asyncio
 async def test_join_room_redis(redis_client):
+    # set up player nicknames
+    await redis_client.hset("player:player1", mapping={"nickname": "p1"})
+    await redis_client.hset("player:player2", mapping={"nickname": "p2"})
+
     # set up a room
     request = CreateRoomRequest(
         host_player_id="player1",
@@ -30,10 +34,18 @@ async def test_join_room_redis(redis_client):
     room_members = await redis_client.smembers(f"room:{response.room_id}:players")
 
     assert room_members == {"player1", "player2"}
+    assert response.players_in_room == [
+        PlayerInfo(id="player1", name="p1", is_host=True),
+        PlayerInfo(id="player2", name="p2", is_host=False),
+    ]
 
 
 @pytest.mark.asyncio
-async def test_join_room_endpoint(client):
+async def test_join_room_endpoint(client, redis_client):
+    # set up player nicknames
+    await redis_client.hset("player:player1", mapping={"nickname": "p1"})
+    await redis_client.hset("player:player2", mapping={"nickname": "p2"})
+
     create_room_resp = await client.post(
         "/rooms",
         json={
@@ -54,3 +66,7 @@ async def test_join_room_endpoint(client):
 
     resp = join_room_resp.json()
     assert resp["player_id"] == "player2"
+    assert resp["players_in_room"] == [
+        {"id": "player1", "is_host": True, "name": "p1"},
+        {"id": "player2", "is_host": False, "name": "p2"},
+    ]
