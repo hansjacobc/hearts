@@ -1,7 +1,5 @@
 import logging
 
-from starlette.middleware.cors import CORSMiddleware
-
 from app.dependencies import get_redis, get_redis_ws
 from app.lifespan import lifespan
 from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
@@ -28,6 +26,7 @@ from src.schemas import (
     StartGameRequest,
     StartGameResponse,
 )
+from starlette.middleware.cors import CORSMiddleware
 
 logger = logging.getLogger(__name__)
 
