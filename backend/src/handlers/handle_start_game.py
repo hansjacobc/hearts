@@ -60,7 +60,8 @@ async def handle_start_game(
         )
 
     # remaining cards in the deck
-    await pipe.rpush(f"room:{room_id}:deck", *left_over_deck)
+    if left_over_deck:
+        await pipe.rpush(f"room:{room_id}:deck", *left_over_deck)
     await pipe.expire(f"room:{room_id}:deck", ONE_HOUR_TTL)
 
     # establish turn order

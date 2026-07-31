@@ -11,13 +11,19 @@ interface GameState {
   userId: string;
   lobbyId: string;
   players: Player[];
+  turnOrder: string[];
+  startingPlayerId: string;
+  hand: string[]; // card ids as returned by backend, e.g. "2_spades"
 }
+
 
 type Action =
   | { type: "SET_USER"; username: string; userId: string }
   | { type: "SET_LOBBY_ID"; lobbyId: string }
   | { type: "MERGE_PLAYERS"; players: Player[] }
   | { type: "PLAYER_LEFT"; playerId: string }
+  | { type: "GAME_STARTED"; turnOrder: string[]; startingPlayerId: string }
+  | { type: "SET_HAND"; hand: string[] }
   | { type: "RESET" };
 
 const initialState: GameState = {
@@ -25,6 +31,9 @@ const initialState: GameState = {
   userId: "",
   lobbyId: "",
   players: [],
+  turnOrder: [],
+  startingPlayerId: "",
+  hand: [],
 };
 
 function mergePlayers(existing: Player[], incoming: Player[]): Player[] {
@@ -47,6 +56,10 @@ function reducer(state: GameState, action: Action): GameState {
       return { ...state, players: state.players.filter((p) => p.id !== action.playerId) };
     case "RESET":
       return initialState;
+    case "GAME_STARTED":
+      return { ...state, turnOrder: action.turnOrder, startingPlayerId: action.startingPlayerId };
+    case "SET_HAND":
+      return { ...state, hand: action.hand };
     default:
       return state;
   }

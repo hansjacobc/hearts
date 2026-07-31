@@ -9,7 +9,8 @@ export function useGameSocket(
 ) {
   const [status, setStatus] = useState<SocketStatus>("connecting");
   const onMessageRef = useRef(onMessage);
-  onMessageRef.current = onMessage; // keeps effect deps stable if caller passes a new fn each render
+  onMessageRef.current = onMessage;
+  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     if (!roomId || !playerId) return;
@@ -17,6 +18,7 @@ export function useGameSocket(
     setStatus("connecting");
     const url = `${import.meta.env.VITE_WS_BASE}/${roomId}/${playerId}`;
     const ws = new WebSocket(url);
+    wsRef.current = ws;
 
     ws.onopen = () => setStatus("connected");
     ws.onclose = () => setStatus("disconnected");
@@ -30,8 +32,17 @@ export function useGameSocket(
       }
     };
 
-    return () => ws.close();
+    return () => {
+      wsRef.current = null;
+      ws.close();
+    };
   }, [roomId, playerId]);
 
-  return status;
+  function send(payload: unknown) {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(payload));
+    }
+  }
+
+  return { status, send };
 }

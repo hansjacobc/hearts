@@ -23,22 +23,33 @@ export default function Lobby() {
 
   const isHost = state.players.find((p) => p.id === state.userId)?.isHost ?? false;
 
-  function handleSocketMessage(data: unknown) {
-    if (typeof data !== "object" || data === null || !("type" in data)) return;
-    const msg = data as { type: string; [key: string]: unknown };
+function handleSocketMessage(data: unknown) {
+  if (typeof data !== "object" || data === null || !("type" in data)) return;
+  const msg = data as { type: string; [key: string]: unknown };
 
-    if (msg.type === "player_joined" && msg.player) {
-      const p = msg.player as PlayerInfo;
-      dispatch({
-        type: "MERGE_PLAYERS",
-        players: [{ id: p.id, name: p.name, isHost: p.is_host }],
-      });
-    } else if (msg.type === "player_disconnected" && typeof msg.player_id === "string") {
-      dispatch({ type: "PLAYER_LEFT", playerId: msg.player_id });
-    }
+  if (msg.type === "player_joined" && msg.player) {
+    const p = msg.player as PlayerInfo;
+    dispatch({
+      type: "MERGE_PLAYERS",
+      players: [{ id: p.id, name: p.name, isHost: p.is_host }],
+    });
+  } else if (msg.type === "player_disconnected" && typeof msg.player_id === "string") {
+    dispatch({ type: "PLAYER_LEFT", playerId: msg.player_id });
+  } else if (
+    msg.type === "game_started" &&
+    Array.isArray(msg.turn_order) &&
+    typeof msg.starting_player_id === "string"
+  ) {
+    dispatch({
+      type: "GAME_STARTED",
+      turnOrder: msg.turn_order as string[],
+      startingPlayerId: msg.starting_player_id,
+    });
+    navigate("/game");
   }
+}
 
-  const status = useGameSocket(activeRoomId, state.userId, handleSocketMessage);
+const { status } = useGameSocket(activeRoomId, state.userId, handleSocketMessage);
 
   // once the socket is connected for a pending join, fire the REST join call
   useEffect(() => {
@@ -100,9 +111,8 @@ export default function Lobby() {
     setError(null);
     setSubmitting(true);
     try {
-      // TODO: starting_player_id / turn_order will matter once Game.tsx is wired up
       await startGame(state.lobbyId, state.userId);
-      navigate("/game");
+      // no navigate here — game_started over the socket triggers navigation for everyone, host included
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Couldn't reach the server. Please try again.");
     } finally {

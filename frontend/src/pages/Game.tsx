@@ -1,18 +1,36 @@
+import { useEffect } from "react";
 import { useGame } from "../context/GameContext";
 import { useGameSocket } from "../useGameSocket";
 import Hand from "../components/Hand";
 import Trick from "../components/Trick";
 import Scoreboard from "../components/Scoreboard";
 
-const dummyHand = [
-  { suit: "hearts", rank: "2" },
-  { suit: "spades", rank: "Q" },
-  { suit: "clubs", rank: "10" },
-];
+function parseCard(cardId: string): { rank: string; suit: string } {
+  const [rank, suit] = cardId.split("_");
+  return { rank, suit };
+}
 
 export default function Game() {
-  const { state } = useGame();
-  const status = useGameSocket(state.lobbyId, state.userId);
+  const { state, dispatch } = useGame();
+
+  function handleSocketMessage(data: unknown) {
+    if (typeof data !== "object" || data === null || !("type" in data)) return;
+    const msg = data as { type: string; [key: string]: unknown };
+
+    if (msg.type === "your_hand" && Array.isArray(msg.hand)) {
+      dispatch({ type: "SET_HAND", hand: msg.hand as string[] });
+    }
+  }
+
+  const { status, send } = useGameSocket(state.lobbyId, state.userId, handleSocketMessage);
+
+  useEffect(() => {
+    if (status === "connected") {
+      send({ type: "get_my_hand" });
+    }
+  }, [status]);
+
+  const hand = state.hand.map(parseCard);
 
   return (
     <div className="min-h-screen bg-green-900 text-white p-6 flex flex-col gap-6">
@@ -23,7 +41,7 @@ export default function Game() {
 
       <Scoreboard players={state.players} />
       <Trick cards={[]} />
-      <Hand cards={dummyHand} />
+      <Hand cards={hand} />
     </div>
   );
 }
