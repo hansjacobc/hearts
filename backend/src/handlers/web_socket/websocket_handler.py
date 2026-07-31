@@ -2,6 +2,7 @@ from typing import Awaitable, Callable
 
 from redis.asyncio import Redis
 from src.handlers.web_socket.connections import get_room_lock, send_to_player
+from src.handlers.web_socket.handle_get_my_hand import handle_get_my_hand
 from src.handlers.web_socket.handle_get_state import handle_get_state
 from src.handlers.web_socket.handle_get_trick_loser import handle_get_trick_loser
 from src.handlers.web_socket.handle_pass_cards import handle_pass_cards
@@ -16,6 +17,7 @@ ACTION_HANDLERS: dict[str, ActionHandler] = {
     "shuffle_and_deal": handle_shuffle_and_deal,
     "pass_cards": handle_pass_cards,
     "get_state": handle_get_state,
+    "get_my_hand": handle_get_my_hand,
     # "leave_room": handle_leave_room,
 }
 

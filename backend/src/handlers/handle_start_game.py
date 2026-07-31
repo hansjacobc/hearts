@@ -3,6 +3,7 @@ import random
 
 from redis.asyncio import Redis
 from src.handlers.helpers import deal_hands, find_starting_player
+from src.handlers.web_socket.connections import broadcast, send_to_player
 from src.rooms import ONE_HOUR_TTL, GamePhase, RoomStatus
 from src.schemas import StartGameRequest, StartGameResponse
 
@@ -94,6 +95,32 @@ async def handle_start_game(
     await pipe.expire(f"room:{room_id}", ONE_HOUR_TTL)
 
     await pipe.execute()
+
+    # Broadcast shared state to everyone in the room
+    await broadcast(
+        room_id,
+        {
+            "type": "game_started",
+            "room_id": room_id,
+            "status": RoomStatus.IN_PROGRESS,
+            "starting_player_id": starting_player_id,
+            "turn_order": turn_order,
+            "phase": GamePhase.PASSING,
+            "round_number": 1,
+            "game_number": 1,
+        },
+    )
+
+    # Send each player their own private hand
+    for player_id, hand in hands.items():
+        await send_to_player(
+            room_id,
+            player_id,
+            {
+                "type": "your_hand",
+                "hand": hand,
+            },
+        )
 
     return StartGameResponse(
         room_id=room_id,
