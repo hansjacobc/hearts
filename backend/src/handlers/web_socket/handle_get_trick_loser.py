@@ -16,11 +16,14 @@ async def handle_get_trick_loser(
     current_state = deserialize_state(await redis.hgetall(f"room:{room_id}:state"))
 
     if current_state["phase"] != GamePhase.TRICK_END or not trick:
-        await broadcast(room_id, {
-            "type": "error",
-            "reason": "round_not_over",
-            "message": "You can't end the trick before it's over!",
-        })
+        await broadcast(
+            room_id,
+            {
+                "type": "error",
+                "reason": "round_not_over",
+                "message": "You can't end the trick before it's over!",
+            },
+        )
         return
 
     losing_player_id = find_trick_loser(current_state["lead_suit"], trick)

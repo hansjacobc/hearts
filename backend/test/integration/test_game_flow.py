@@ -84,7 +84,7 @@ async def test_game_flow_giga_test(
     await ws_action("room1", "player1", {"type": "play_card", "card": "2_clubs"})
     state_resp = await ws_action("room1", "player5", {"type": "get_state"})
     assert state_resp["state"] == {
-        "card_pile": ["2_clubs"],
+        "card_pile": [{"card": "2_clubs", "player_id": "player1"}],
         "current_turn_player_id": "player2",
         "game_number": 1,
         "is_hearts_broken": False,
@@ -102,7 +102,10 @@ async def test_game_flow_giga_test(
     await ws_action("room1", "player2", {"type": "play_card", "card": "10_clubs"})
     state_resp = await ws_action("room1", "player5", {"type": "get_state"})
     assert state_resp["state"] == {
-        "card_pile": ["2_clubs", "10_clubs"],
+        "card_pile": [
+            {"card": "2_clubs", "player_id": "player1"},
+            {"card": "10_clubs", "player_id": "player2"},
+        ],
         "current_turn_player_id": "player3",
         "game_number": 1,
         "is_hearts_broken": False,
@@ -120,7 +123,11 @@ async def test_game_flow_giga_test(
     await ws_action("room1", "player3", {"type": "play_card", "card": "3_clubs"})
     state_resp = await ws_action("room1", "player5", {"type": "get_state"})
     assert state_resp["state"] == {
-        "card_pile": ["2_clubs", "10_clubs", "3_clubs"],
+        "card_pile": [
+            {"card": "2_clubs", "player_id": "player1"},
+            {"card": "10_clubs", "player_id": "player2"},
+            {"card": "3_clubs", "player_id": "player3"},
+        ],
         "current_turn_player_id": "player4",
         "game_number": 1,
         "is_hearts_broken": False,
@@ -138,7 +145,12 @@ async def test_game_flow_giga_test(
     await ws_action("room1", "player4", {"type": "play_card", "card": "4_clubs"})
     state_resp = await ws_action("room1", "player5", {"type": "get_state"})
     assert state_resp["state"] == {
-        "card_pile": ["2_clubs", "10_clubs", "3_clubs", "4_clubs"],
+        "card_pile": [
+            {"card": "2_clubs", "player_id": "player1"},
+            {"card": "10_clubs", "player_id": "player2"},
+            {"card": "3_clubs", "player_id": "player3"},
+            {"card": "4_clubs", "player_id": "player4"},
+        ],
         "current_turn_player_id": "player5",
         "game_number": 1,
         "is_hearts_broken": False,
