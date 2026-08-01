@@ -93,3 +93,13 @@ async def handle_play_card(room_id: str, player_id: str, message: dict, redis: R
             "nickname": nickname,
         },
     )
+
+    current_state = deserialize_state(await redis.hgetall(f"room:{room_id}:state"))
+    await broadcast(
+        room_id,
+        {
+            "type": "state",
+            "reason": "info",
+            "state": current_state,
+        },
+    )

@@ -26,7 +26,7 @@ def get_next_turn_number(current_state: dict) -> int:
 
 
 async def get_card_pile(
-    current_state: dict, card: str, end_of_trick: bool
+    current_state: dict, player_id: str, card: str, end_of_trick: bool
 ) -> list[str]:
     """
     Not end of round -> add card to pile
@@ -35,7 +35,7 @@ async def get_card_pile(
     card_pile = current_state["card_pile"]
     if end_of_trick:
         return []
-    card_pile.append(card)
+    card_pile.append({"player_id": player_id, "card": card})
     return card_pile
 
 
@@ -89,7 +89,7 @@ async def advance_game_state(
     next_player = await get_next_player(turn_number, room_id, player_id, redis)
     if turn_number == 1:
         end_of_trick = True
-    card_pile = await get_card_pile(current_state, card, end_of_trick)
+    card_pile = await get_card_pile(current_state, player_id, card, end_of_trick)
     is_hearts_broken = is_broken(current_state, card)
     game_phase = GamePhase.TRICK_END if end_of_trick else GamePhase.PLAYING
     round_number, game_number = get_round_and_game_number(current_state, end_of_trick)
