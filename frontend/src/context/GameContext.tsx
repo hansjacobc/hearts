@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useReducer, type ReactNode } from "react";
 
 interface Player {
   id: string;
@@ -13,7 +13,8 @@ interface GameState {
   players: Player[];
   turnOrder: string[];
   startingPlayerId: string;
-  hand: string[]; // card ids as returned by backend, e.g. "2_spades"
+  hand: string[];
+  status: string;
 }
 
 
@@ -24,7 +25,10 @@ type Action =
   | { type: "PLAYER_LEFT"; playerId: string }
   | { type: "GAME_STARTED"; turnOrder: string[]; startingPlayerId: string }
   | { type: "SET_HAND"; hand: string[] }
-  | { type: "RESET" };
+  | { type: "RESET" }
+  | { type: "SET_PLAYERS"; players: Player[] }
+  | { type: "SET_STATUS"; status: "waiting" | "in_progress" };
+
 
 const initialState: GameState = {
   username: "",
@@ -34,6 +38,7 @@ const initialState: GameState = {
   turnOrder: [],
   startingPlayerId: "",
   hand: [],
+  status: "",
 };
 
 function mergePlayers(existing: Player[], incoming: Player[]): Player[] {
@@ -60,6 +65,10 @@ function reducer(state: GameState, action: Action): GameState {
       return { ...state, turnOrder: action.turnOrder, startingPlayerId: action.startingPlayerId };
     case "SET_HAND":
       return { ...state, hand: action.hand };
+    case "SET_PLAYERS":
+      return { ...state, players: action.players };
+    case "SET_STATUS":
+      return { ...state, status: action.status };
     default:
       return state;
   }
@@ -69,8 +78,38 @@ const GameContext = createContext
   <{ state: GameState; dispatch: React.Dispatch<Action> } | undefined
 >(undefined);
 
+
+const STORAGE_KEY = "hearts_session";
+
+function loadInitialState(): GameState {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return initialState;
+    const saved = JSON.parse(raw);
+    return {
+      ...initialState,
+      username: saved.username ?? "",
+      userId: saved.userId ?? "",
+      lobbyId: saved.lobbyId ?? "",
+      // players/hand/turnOrder intentionally NOT restored from storage —
+      // they're re-fetched fresh via room_state once the socket reconnects,
+      // since a stale cached roster could be wrong (someone left while we were gone)
+    };
+  } catch {
+    return initialState;
+  }
+}
+
 export function GameProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(reducer, undefined, loadInitialState);
+
+  useEffect(() => {
+    sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ username: state.username, userId: state.userId, lobbyId: state.lobbyId })
+    );
+  }, [state.username, state.userId, state.lobbyId]);
+
   return (
     <GameContext.Provider value={{ state, dispatch }}>
       {children}

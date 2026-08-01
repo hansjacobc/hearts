@@ -4,6 +4,7 @@ import { useGameSocket } from "../useGameSocket";
 import Hand from "../components/Hand";
 import Trick from "../components/Trick";
 import Scoreboard from "../components/Scoreboard";
+import { useNavigate } from "react-router-dom";
 
 function parseCard(cardId: string): { rank: string; suit: string } {
   const [rank, suit] = cardId.split("_");
@@ -12,6 +13,7 @@ function parseCard(cardId: string): { rank: string; suit: string } {
 
 export default function Game() {
   const { state, dispatch } = useGame();
+  const navigate = useNavigate();
 
   function handleSocketMessage(data: unknown) {
     if (typeof data !== "object" || data === null || !("type" in data)) return;
@@ -22,13 +24,25 @@ export default function Game() {
     }
   }
 
-  const { status, send } = useGameSocket(state.lobbyId, state.userId, handleSocketMessage);
+  const hasIdentity = Boolean(state.username && state.lobbyId);
+
+  const { status, send } = useGameSocket(
+    hasIdentity ? state.lobbyId : "",
+    hasIdentity ? state.userId : "",
+    handleSocketMessage
+  );
 
   useEffect(() => {
+    if (!hasIdentity) {
+      navigate("/");
+      return;
+    }
     if (status === "connected") {
       send({ type: "get_my_hand" });
     }
-  }, [status]);
+  }, [hasIdentity, status]);
+
+  if (!hasIdentity) return null;
 
   const hand = state.hand.map(parseCard);
 

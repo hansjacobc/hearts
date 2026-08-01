@@ -1,7 +1,9 @@
 import json
 import random
 
+from redis.asyncio import Redis
 from src.rooms import GamePhase
+from src.schemas import PlayerInfo
 
 
 def deserialize_state(raw: dict) -> dict:
@@ -77,3 +79,18 @@ def find_trick_loser(lead_suit: str, trick: dict):
             losing_player_id = p_id
 
     return losing_player_id
+
+
+async def build_players_in_room(
+    room_data: dict, room_id: str, redis: Redis
+) -> list[PlayerInfo]:
+    host_id = room_data.get("host_player_id")
+    player_ids = await redis.smembers(f"room:{room_id}:players")
+
+    players_in_room = []
+    for player_id in player_ids:
+        nickname = await redis.hget(f"player:{player_id}", "nickname")
+        players_in_room.append(
+            PlayerInfo(id=player_id, name=nickname, is_host=player_id == host_id)
+        )
+    return players_in_room

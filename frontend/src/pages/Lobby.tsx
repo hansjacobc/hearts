@@ -17,7 +17,7 @@ export default function Lobby() {
   const [numPlayers, setNumPlayers] = useState(4);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [activeRoomId, setActiveRoomId] = useState(""); // drives socket connection
+  const [activeRoomId, setActiveRoomId] = useState(state.lobbyId);
   const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -46,6 +46,16 @@ function handleSocketMessage(data: unknown) {
       startingPlayerId: msg.starting_player_id,
     });
     navigate("/game");
+  } else if (msg.type === "room_state" && Array.isArray(msg.players)) {
+    dispatch({
+      type: "SET_PLAYERS",
+      players: (msg.players as PlayerInfo[]).map((p) => ({
+        id: p.id, name: p.name, isHost: p.is_host,
+      })),
+    });
+    if (msg.status === "in_progress") {
+      navigate("/game"); // game started while we were away — catch up
+    }
   }
 }
 
