@@ -9,7 +9,8 @@ interface CardProps {
   translateY?: number;
   size?: "sm" | "md" | "lg";
   layoutId?: string;
-  disabled?: boolean;
+  disabled?: boolean; // fully non-interactive (used for trick display cards)
+  selected?: boolean;
 }
 
 const SIZE_CLASSES: Record<string, string> = {
@@ -28,23 +29,26 @@ export default function Card({
   size = "md",
   layoutId,
   disabled = false,
+  selected = false,
 }: CardProps) {
   const src = faceDown ? "/cards/basic/card_back.svg" : `/cards/basic/${rank}_${suit}.svg`;
-  const interactive = !faceDown && !disabled;
+  const canHover = !faceDown && !disabled;
+  const canClick = !faceDown && !disabled && Boolean(onClick);
+  const liftY = translateY - 14;
 
   return (
     <motion.img
       layoutId={layoutId}
       src={src}
       alt={faceDown ? "card back" : `${rank} of ${suit}`}
-      onClick={interactive ? onClick : undefined}
+      onClick={canClick ? onClick : undefined}
       initial={false}
-      animate={{ rotate, y: translateY }}
-      whileHover={interactive ? { y: translateY - 14, zIndex: 20 } : undefined}
+      animate={{ rotate, y: selected ? liftY : translateY }}
+      whileHover={canHover && !selected ? { y: liftY, zIndex: 20 } : undefined}
       transition={{ type: "spring", stiffness: 300, damping: 24 }}
       className={`${SIZE_CLASSES[size]} select-none drop-shadow-md rounded-sm ${
-        interactive ? "cursor-pointer" : ""
-      }`}
+        canClick ? "cursor-pointer" : ""
+      } ${selected ? "ring-4 ring-yellow-400 rounded-md" : ""}`}
       draggable={false}
     />
   );

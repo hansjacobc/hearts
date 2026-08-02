@@ -161,7 +161,7 @@ export default function Game() {
       </div>
 
       {playError && (
-        <div className="absolute bottom-40 left-1/2 -translate-x-1/2 bg-red-500/90 text-white text-sm px-4 py-2 rounded-lg shadow-lg">
+        <div className="absolute bottom-[220px] left-1/2 -translate-x-1/2 z-50 bg-red-500/90 text-white text-sm px-4 py-2 rounded-lg shadow-lg whitespace-nowrap">
           {playError}
         </div>
       )}
