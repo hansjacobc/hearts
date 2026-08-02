@@ -20,6 +20,7 @@ def deserialize_state(raw: dict) -> dict:
         "phase": GamePhase(raw["phase"]),
         "starting_card": raw["starting_card"],
         "total_players": int(raw["total_players"]),
+        "direction": raw.get("direction", "KEEP"),
     }
 
 
