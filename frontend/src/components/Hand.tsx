@@ -3,18 +3,18 @@ import Card from "./Card";
 import { sortCardIds, type SortMode } from "../utils/sortHand";
 
 interface HandProps {
-  cards: string[]; // "rank_suit" ids from GameContext
+  cards: string[];
   onPlay?: (cardId: string) => void;
+  disabled?: boolean;
 }
 
 const MAX_SPREAD_DEG = 34;
 const ARC_DROP = 1;
 
-export default function Hand({ cards, onPlay }: HandProps) {
+export default function Hand({ cards, onPlay, disabled = false }: HandProps) {
   const [sortMode, setSortMode] = useState<SortMode>("rank");
   const [ordered, setOrdered] = useState<string[]>(() => sortCardIds(cards, "rank"));
 
-  // Re-sort (keeping current mode) whenever a fresh hand arrives from the server.
   useEffect(() => {
     setOrdered(sortCardIds(cards, sortMode));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -22,7 +22,7 @@ export default function Hand({ cards, onPlay }: HandProps) {
 
   function applySort(mode: SortMode) {
     setSortMode(mode);
-    setOrdered(sortCardIds(cards, mode)); // always re-derive from `cards`, never from `ordered`
+    setOrdered(sortCardIds(cards, mode));
   }
 
   const n = ordered.length;
@@ -60,6 +60,7 @@ export default function Hand({ cards, onPlay }: HandProps) {
                 rotate={offset * stepDeg}
                 translateY={ARC_DROP * offset * offset}
                 onClick={() => onPlay?.(id)}
+                disabled={disabled}
               />
             </div>
           );

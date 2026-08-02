@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useReducer, type ReactNode } from "react";
+import type { TableState, PlayerScore } from "../utils/mapServerState";
 
 interface Player {
   id: string;
@@ -15,8 +16,9 @@ interface GameState {
   startingPlayerId: string;
   hand: string[];
   status: string;
+  table: TableState | null;
+  scores: Record<string, PlayerScore>;
 }
-
 
 type Action =
   | { type: "SET_USER"; username: string; userId: string }
@@ -27,8 +29,11 @@ type Action =
   | { type: "SET_HAND"; hand: string[] }
   | { type: "RESET" }
   | { type: "SET_PLAYERS"; players: Player[] }
-  | { type: "SET_STATUS"; status: "waiting" | "in_progress" };
-
+  | { type: "SET_STATUS"; status: "waiting" | "in_progress" }
+  | { type: "SET_TABLE_STATE"; table: TableState }
+  | { type: "TRICK_RESOLVED"; losingPlayerId: string }
+  | { type: "SET_SCORES"; scores: Record<string, PlayerScore> }
+  | { type: "REMOVE_CARD_FROM_HAND"; card: string };
 
 const initialState: GameState = {
   username: "",
@@ -39,13 +44,13 @@ const initialState: GameState = {
   startingPlayerId: "",
   hand: [],
   status: "",
+  table: null,
+  scores: {},
 };
 
 function mergePlayers(existing: Player[], incoming: Player[]): Player[] {
   const byId = new Map(existing.map((p) => [p.id, p]));
-  for (const p of incoming) {
-    byId.set(p.id, p); // incoming wins on conflict (REST/socket data is authoritative)
-  }
+  for (const p of incoming) byId.set(p.id, p);
   return Array.from(byId.values());
 }
 
@@ -69,15 +74,32 @@ function reducer(state: GameState, action: Action): GameState {
       return { ...state, players: action.players };
     case "SET_STATUS":
       return { ...state, status: action.status };
+    case "SET_TABLE_STATE":
+      return { ...state, table: action.table };
+    case "TRICK_RESOLVED":
+      return state.table
+        ? {
+            ...state,
+            table: {
+              ...state.table,
+              currentTurnPlayerId: action.losingPlayerId,
+              phase: "PLAYING",
+              leadSuit: "OPEN",
+            },
+          }
+        : state;
+    case "SET_SCORES":
+      return { ...state, scores: action.scores };
+    case "REMOVE_CARD_FROM_HAND":
+      return { ...state, hand: state.hand.filter((c) => c !== action.card) };
     default:
       return state;
   }
 }
 
-const GameContext = createContext
-  <{ state: GameState; dispatch: React.Dispatch<Action> } | undefined
->(undefined);
-
+const GameContext = createContext<{ state: GameState; dispatch: React.Dispatch<Action> } | undefined>(
+  undefined
+);
 
 const STORAGE_KEY = "hearts_session";
 
@@ -91,9 +113,6 @@ function loadInitialState(): GameState {
       username: saved.username ?? "",
       userId: saved.userId ?? "",
       lobbyId: saved.lobbyId ?? "",
-      // players/hand/turnOrder intentionally NOT restored from storage —
-      // they're re-fetched fresh via room_state once the socket reconnects,
-      // since a stale cached roster could be wrong (someone left while we were gone)
     };
   } catch {
     return initialState;
@@ -110,11 +129,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     );
   }, [state.username, state.userId, state.lobbyId]);
 
-  return (
-    <GameContext.Provider value={{ state, dispatch }}>
-      {children}
-    </GameContext.Provider>
-  );
+  return <GameContext.Provider value={{ state, dispatch }}>{children}</GameContext.Provider>;
 }
 
 export function useGame() {
