@@ -4,7 +4,7 @@ from src.handlers.web_socket.connections import broadcast
 from src.rooms import GamePhase
 
 
-# pylint: disable=unused-argument
+# pylint: disable=unused-argument, too-many-locals
 async def handle_get_trick_loser(
     room_id: str, player_id: str, message: dict, redis: Redis
 ):
@@ -49,23 +49,54 @@ async def handle_get_trick_loser(
         # delete deck once dealt out
         await redis.delete(f"room:{room_id}:deck")
 
-    # updates round score
+    # update round score
     round_score = await redis.hget(
         f"room:{room_id}:score:{losing_player_id}", "round_score"
     )
-
     round_score = int(round_score)
-
     await redis.hset(
         f"room:{room_id}:score:{losing_player_id}",
-        mapping={
-            "round_score": round_score + score,
-        },
+        mapping={"round_score": round_score + score},
     )
-    # clear the trick
+
     await redis.delete(f"room:{room_id}:trick")
 
-    # set phase in game state to playing and current turn to trick loser
+    # A trick ending doesn't necessarily mean the deal ended — only check
+    # for that once this specific trick's cleanup is done.
+    player_ids = list(await redis.smembers(f"room:{room_id}:players"))
+    deal_over = True
+    for pid in player_ids:
+        if await redis.scard(f"room:{room_id}:hand:{pid}") > 0:
+            deal_over = False
+            break
+
+    if deal_over:
+        game_scores = {}
+        for pid in player_ids:
+            scores = await redis.hgetall(f"room:{room_id}:score:{pid}")
+            round_total = int(scores.get("round_score", 0))
+            new_game_total = int(scores.get("game_score", 0)) + round_total
+            await redis.hset(
+                f"room:{room_id}:score:{pid}",
+                mapping={"round_score": 0, "game_score": new_game_total},
+            )
+            game_scores[pid] = new_game_total
+
+        await redis.hset(
+            f"room:{room_id}:state",
+            mapping={"phase": GamePhase.DEAL_END, "lead_suit": "OPEN"},
+        )
+        await broadcast(
+            room_id,
+            {
+                "type": "deal_over",
+                "losing_player_id": losing_player_id,
+                "nickname": nickname,
+                "scores": game_scores,
+            },
+        )
+        return
+
     await redis.hset(
         f"room:{room_id}:state",
         mapping={

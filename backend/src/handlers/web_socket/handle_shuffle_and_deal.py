@@ -2,7 +2,8 @@
 import json
 
 from redis.asyncio import Redis
-from src.handlers.helpers import deal_hands, find_starting_player
+from src.handlers.helpers import deal_hands, deserialize_state, find_starting_player
+from src.handlers.web_socket.connections import broadcast
 from src.rooms import ONE_HOUR_TTL, GamePhase
 
 
@@ -43,3 +44,8 @@ async def handle_shuffle_and_deal(
             "lead_suit": "clubs",
         },
     )
+
+    await pipe.execute()
+
+    new_state = deserialize_state(await redis.hgetall(f"room:{room_id}:state"))
+    await broadcast(room_id, {"type": "state", "reason": "info", "state": new_state})

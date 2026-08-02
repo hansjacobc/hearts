@@ -19,3 +19,4 @@ class GamePhase(StrEnum):
     PLAYING = "PLAYING"
     TRICK_END = "TRICK_END"
     ROUND_END = "ROUND_END"
+    DEAL_END = "DEAL_END"
