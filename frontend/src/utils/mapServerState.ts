@@ -8,6 +8,7 @@ export interface RawTableState {
   lead_suit: string;
   last_action: string;
   last_action_player_id: string;
+  direction: "LEFT" | "RIGHT" | "KEEP";
   card_pile?: { player_id: string; card: string }[];
 }
 
@@ -21,6 +22,7 @@ export interface TableState {
   leadSuit: string;
   lastAction: string;
   lastActionPlayerId: string;
+  direction: "LEFT" | "RIGHT" | "KEEP";
 }
 
 export function mapTableState(raw: RawTableState): TableState {
@@ -34,6 +36,7 @@ export function mapTableState(raw: RawTableState): TableState {
     leadSuit: raw.lead_suit,
     lastAction: raw.last_action,
     lastActionPlayerId: raw.last_action_player_id,
+    direction: raw.direction,
   };
 }
 

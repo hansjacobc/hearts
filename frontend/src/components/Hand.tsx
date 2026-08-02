@@ -4,21 +4,33 @@ import { sortCardIds, type SortMode } from "../utils/sortHand";
 
 interface HandProps {
   cards: string[];
-  onPlay?: (cardId: string) => void;
-  disabled?: boolean; // true when it's not this player's turn
+  onConfirm: (cards: string[]) => void;
+  confirmLabel: string;
+  maxSelected?: number;   // 1 for playing a card, 3 for passing
+  requireExact?: boolean; // true for passing: must select exactly maxSelected
+  disabled?: boolean;     // true when action isn't currently allowed
+  helperText?: string;    // e.g. "Waiting on 2 of 3 players to pass..."
 }
 
 const MAX_SPREAD_DEG = 34;
 const ARC_DROP = 1;
 
-export default function Hand({ cards, onPlay, disabled = false }: HandProps) {
+export default function Hand({
+  cards,
+  onConfirm,
+  confirmLabel,
+  maxSelected = 1,
+  requireExact = false,
+  disabled = false,
+  helperText,
+}: HandProps) {
   const [sortMode, setSortMode] = useState<SortMode>("rank");
   const [ordered, setOrdered] = useState<string[]>(() => sortCardIds(cards, "rank"));
-  const [selectedCard, setSelectedCard] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
     setOrdered(sortCardIds(cards, sortMode));
-    setSelectedCard((prev) => (prev && cards.includes(prev) ? prev : null));
+    setSelected((prev) => prev.filter((c) => cards.includes(c)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cards]);
 
@@ -28,14 +40,24 @@ export default function Hand({ cards, onPlay, disabled = false }: HandProps) {
   }
 
   function toggleSelect(cardId: string) {
-    setSelectedCard((prev) => (prev === cardId ? null : cardId));
+    setSelected((prev) => {
+      if (prev.includes(cardId)) return prev.filter((c) => c !== cardId);
+      if (maxSelected === 1) return [cardId]; // single-select replaces
+      if (prev.length >= maxSelected) return prev; // multi-select caps out
+      return [...prev, cardId];
+    });
   }
 
-  function handlePlayClick() {
-    if (!selectedCard || disabled) return;
-    onPlay?.(selectedCard);
-    setSelectedCard(null);
+  function handleConfirm() {
+    if (disabled) return;
+    const ready = requireExact ? selected.length === maxSelected : selected.length >= 1;
+    if (!ready) return;
+    onConfirm(selected);
+    setSelected([]);
   }
+
+  const canConfirm =
+    !disabled && (requireExact ? selected.length === maxSelected : selected.length >= 1);
 
   const n = ordered.length;
   const mid = (n - 1) / 2;
@@ -60,16 +82,19 @@ export default function Hand({ cards, onPlay, disabled = false }: HandProps) {
           ))}
         </div>
 
+        {helperText && <span className="text-white/60">{helperText}</span>}
+
         <button
-          onClick={handlePlayClick}
-          disabled={!selectedCard || disabled}
+          onClick={handleConfirm}
+          disabled={!canConfirm}
           className={`px-4 py-1 rounded-full font-semibold transition-colors ${
-            selectedCard && !disabled
+            canConfirm
               ? "bg-yellow-400 text-green-950 hover:bg-yellow-300"
               : "bg-white/10 text-white/30 cursor-not-allowed"
           }`}
         >
-          Play card
+          {confirmLabel}
+          {maxSelected > 1 ? ` (${selected.length}/${maxSelected})` : ""}
         </button>
       </div>
 
@@ -77,7 +102,7 @@ export default function Hand({ cards, onPlay, disabled = false }: HandProps) {
         {ordered.map((id, i) => {
           const [rank, suit] = id.split("_");
           const offset = i - mid;
-          const isSelected = id === selectedCard;
+          const isSelected = selected.includes(id);
           return (
             <div key={id} style={{ marginLeft: i === 0 ? 0 : -18, zIndex: isSelected ? 30 : i }}>
               <Card

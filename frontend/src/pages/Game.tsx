@@ -22,6 +22,9 @@ export default function Game() {
   const [playError, setPlayError] = useState<string | null>(null);
   const trickEndHandledRef = useRef<string | null>(null);
 
+  const [passedPlayerIds, setPassedPlayerIds] = useState<Set<string>>(new Set());
+  const passingRoundRef = useRef<number | null>(null); // which round_number we've already handled KEEP-autosend for
+
   function handleSocketMessage(data: unknown) {
     if (typeof data !== "object" || data === null || !("type" in data)) return;
     const msg = data as { type: string; [key: string]: unknown };
@@ -50,7 +53,6 @@ export default function Game() {
       case "trick_loser": {
         dispatch({ type: "TRICK_RESOLVED", losingPlayerId: msg.losing_player_id as string });
         send({ type: "get_scores" });
-        // Leave the resolved trick visible for a beat before sweeping it.
         setTimeout(() => setTrickCards([]), 900);
         break;
       }
@@ -61,10 +63,22 @@ export default function Game() {
         });
         break;
       }
+      case "pass_cards": {
+        if (msg.message === "done_passing") {
+          setPassedPlayerIds((prev) => new Set(prev).add(msg.player_id as string));
+        }
+        break;
+      }
+      case "cards_received": {
+        if (Array.isArray(msg.cards)) {
+          dispatch({ type: "ADD_CARDS_TO_HAND", cards: msg.cards as string[] });
+        }
+        break;
+      }
       case "error": {
-        if (msg.reason === "invalid_play") {
-          setPlayError((msg.message as string) ?? "You can't play that card.");
-          send({ type: "get_my_hand" }); // resync in case optimistic removal was wrong
+        if (msg.reason === "invalid_play" || msg.reason === "invalid_pass") {
+          setPlayError((msg.message as string) ?? "That's not allowed right now.");
+          send({ type: "get_my_hand" }); // resync in case an optimistic update was wrong
         }
         break;
       }
@@ -91,8 +105,23 @@ export default function Game() {
     }
   }, [hasIdentity, status]);
 
-  // Only the player who played the trick-ending card requests the resolution —
-  // deterministic, so no race between clients is possible.
+  // Reset the "who's passed" tracker whenever we enter a fresh passing round.
+  useEffect(() => {
+    if (state.table?.phase === "PASSING") {
+      setPassedPlayerIds(new Set());
+    }
+  }, [state.table?.roundNumber, state.table?.gameNumber, state.table?.phase]);
+
+  // KEEP rounds need no card selection — auto-send once per round so the
+  // phase can advance without requiring a pointless click.
+  useEffect(() => {
+    if (state.table?.phase !== "PASSING") return;
+    if (state.table.direction !== "KEEP") return;
+    if (passingRoundRef.current === state.table.roundNumber) return;
+    passingRoundRef.current = state.table.roundNumber;
+    send({ type: "pass_cards", cards_to_pass: [] });
+  }, [state.table?.phase, state.table?.direction, state.table?.roundNumber]);
+
   useEffect(() => {
     if (!state.table) return;
     if (state.table.phase !== "TRICK_END") return;
@@ -111,17 +140,28 @@ export default function Game() {
     return () => clearTimeout(t);
   }, [playError]);
 
+  const prevPhaseRef = useRef<string | null>(null);
+
+  // Passing is a multi-party operation — trust the server's final hand
+  // rather than trying to reconstruct it from cards_received/optimistic
+  // removal, which only need to be "roughly right" for the pass UI itself.
+  useEffect(() => {
+    const prevPhase = prevPhaseRef.current;
+    const currentPhase = state.table?.phase ?? null;
+    if (prevPhase === "PASSING" && currentPhase === "PLAYING") {
+      send({ type: "get_my_hand" });
+    }
+    prevPhaseRef.current = currentPhase;
+  }, [state.table?.phase]);
+
   const seats = useSeatLayout(state.players, state.turnOrder, state.userId);
 
   const handCounts = useMemo(() => {
     const playedIds = new Set(trickCards.map((p) => p.playerId));
     const selfPlayed = playedIds.has(state.userId);
     const baseline = state.hand.length + (selfPlayed ? 1 : 0);
-
     const counts: Record<string, number> = {};
-    for (const p of state.players) {
-      counts[p.id] = baseline - (playedIds.has(p.id) ? 1 : 0);
-    }
+    for (const p of state.players) counts[p.id] = baseline - (playedIds.has(p.id) ? 1 : 0);
     return counts;
   }, [state.players, state.userId, state.hand.length, trickCards]);
 
@@ -131,16 +171,25 @@ export default function Game() {
     return out;
   }, [state.scores]);
 
+  const isPassing = state.table?.phase === "PASSING";
   const isMyTurn =
-    state.table?.currentTurnPlayerId === state.userId && state.table?.phase !== "TRICK_END";
+    state.table?.currentTurnPlayerId === state.userId && state.table?.phase === "PLAYING";
+  const hasPassed = passedPlayerIds.has(state.userId);
 
-  function handlePlayCard(cardId: string) {
-    if (!isMyTurn) return;
-    dispatch({ type: "REMOVE_CARD_FROM_HAND", card: cardId }); // optimistic
+  function handlePlayCard(cards: string[]) {
+    const [cardId] = cards;
+    dispatch({ type: "REMOVE_CARDS_FROM_HAND", cards: [cardId] }); // optimistic
     send({ type: "play_card", card: cardId });
   }
 
+  function handlePassCards(cards: string[]) {
+    dispatch({ type: "REMOVE_CARDS_FROM_HAND", cards }); // optimistic
+    send({ type: "pass_cards", cards_to_pass: cards });
+  }
+
   if (!hasIdentity) return null;
+
+
 
   return (
     <div className="relative min-h-screen w-screen bg-green-900 text-white overflow-hidden">
@@ -171,7 +220,35 @@ export default function Game() {
           isMyTurn ? "shadow-[0_0_24px_6px_rgba(250,204,21,0.35)]" : ""
         }`}
       >
-        <Hand cards={state.hand} onPlay={handlePlayCard} disabled={!isMyTurn} />
+        {isPassing ? (
+          state.table?.direction === "KEEP" ? (
+            <div className="text-center text-white/70 text-sm py-6">
+              No passing this round — waiting for everyone to be ready…
+            </div>
+          ) : (
+            <Hand
+              cards={state.hand}
+              onConfirm={handlePassCards}
+              confirmLabel={`Pass ${state.table?.direction?.toLowerCase() ?? ""}`}
+              maxSelected={3}
+              requireExact
+              disabled={hasPassed}
+              helperText={
+                hasPassed
+                  ? `Waiting on ${state.players.length - passedPlayerIds.size} more…`
+                  : undefined
+              }
+            />
+          )
+        ) : (
+          <Hand
+            cards={state.hand}
+            onConfirm={handlePlayCard}
+            confirmLabel="Play card"
+            maxSelected={1}
+            disabled={!isMyTurn}
+          />
+        )}
       </div>
     </div>
   );

@@ -33,7 +33,8 @@ type Action =
   | { type: "SET_TABLE_STATE"; table: TableState }
   | { type: "TRICK_RESOLVED"; losingPlayerId: string }
   | { type: "SET_SCORES"; scores: Record<string, PlayerScore> }
-  | { type: "REMOVE_CARD_FROM_HAND"; card: string };
+  | { type: "REMOVE_CARDS_FROM_HAND"; cards: string[] }
+  | { type: "ADD_CARDS_TO_HAND"; cards: string[] };
 
 const initialState: GameState = {
   username: "",
@@ -90,8 +91,12 @@ function reducer(state: GameState, action: Action): GameState {
         : state;
     case "SET_SCORES":
       return { ...state, scores: action.scores };
-    case "REMOVE_CARD_FROM_HAND":
-      return { ...state, hand: state.hand.filter((c) => c !== action.card) };
+    case "REMOVE_CARDS_FROM_HAND": {
+      const removeSet = new Set(action.cards);
+      return { ...state, hand: state.hand.filter((c) => !removeSet.has(c)) };
+    }
+    case "ADD_CARDS_TO_HAND":
+      return { ...state, hand: [...state.hand, ...action.cards] };
     default:
       return state;
   }
