@@ -48,7 +48,7 @@ function handleSocketMessage(data: unknown) {
     navigate("/game");
   } else if (msg.type === "room_state" && Array.isArray(msg.players)) {
     dispatch({
-      type: "SET_PLAYERS",
+      type: "MERGE_PLAYERS",
       players: (msg.players as PlayerInfo[]).map((p) => ({
         id: p.id, name: p.name, isHost: p.is_host,
       })),
