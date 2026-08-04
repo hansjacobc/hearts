@@ -16,7 +16,7 @@ interface CardProps {
 const SIZE_CLASSES: Record<string, string> = {
   sm: "w-10 h-14",
   md: "w-16 h-24",
-  lg: "w-20 h-30",
+  lg: "w-20 h-28", // exactly 2x "sm" — used for cards on the table
 };
 
 export default function Card({

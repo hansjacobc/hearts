@@ -5,6 +5,7 @@ import Hand from "../components/Hand";
 import Trick from "../components/Trick";
 import Scoreboard from "../components/Scoreboard";
 import Table from "../components/Table";
+import DealAnimation from "../components/DealAnimation";
 import { useSeatLayout } from "../hooks/useSeatLayout";
 import { mapTableState, mapScores, type RawTableState, mapGameScoresOnly } from "../utils/mapServerState";
 import { useNavigate } from "react-router-dom";
@@ -19,11 +20,24 @@ export default function Game() {
   const navigate = useNavigate();
 
   const [trickCards, setTrickCards] = useState<TrickCard[]>([]);
+  const [trickWinnerId, setTrickWinnerId] = useState<string | null>(null); // drives the "collect to winner" exit animation
   const [playError, setPlayError] = useState<string | null>(null);
   const trickEndHandledRef = useRef<string | null>(null);
 
   const [passedPlayerIds, setPassedPlayerIds] = useState<Set<string>>(new Set());
   const passingRoundRef = useRef<number | null>(null); // which round_number we've already handled KEEP-autosend for
+  const pendingPlayRef = useRef<string | null>(null); // cardId of an optimistic play not yet confirmed by the server
+
+  // Animate the pile toward the winning player's seat, then clear it once the
+  // animation has had time to play out. Shared by trick_loser (trick won mid-deal)
+  // and deal_over (the final trick of a deal) since both hand off a winner id.
+  function collectTrick(winnerId: string) {
+    setTrickWinnerId(winnerId);
+    setTimeout(() => {
+      setTrickCards([]);
+      setTrickWinnerId(null);
+    }, 900);
+  }
 
   function handleSocketMessage(data: unknown) {
     if (typeof data !== "object" || data === null || !("type" in data)) return;
@@ -45,6 +59,7 @@ export default function Game() {
       case "card_played": {
         const playerId = msg.player_id as string;
         const card = msg.card as string;
+        if (playerId === state.userId) pendingPlayRef.current = null; // server confirmed our optimistic play
         setTrickCards((prev) =>
           prev.some((p) => p.playerId === playerId) ? prev : [...prev, { playerId, card }]
         );
@@ -53,7 +68,7 @@ export default function Game() {
       case "trick_loser": {
         dispatch({ type: "TRICK_RESOLVED", losingPlayerId: msg.losing_player_id as string });
         send({ type: "get_scores" });
-        setTimeout(() => setTrickCards([]), 900);
+        collectTrick(msg.losing_player_id as string);
         break;
       }
       case "scores": {
@@ -71,7 +86,16 @@ export default function Game() {
       }
       case "cards_received": {
         if (Array.isArray(msg.cards)) {
-          dispatch({ type: "ADD_CARDS_TO_HAND", cards: msg.cards as string[] });
+          // Whatever triggers this message server-side, don't let the new
+          // cards show up in the fan while we're still in PASSING — that
+          // would leak your incoming cards before everyone's actually
+          // finished passing. The get_my_hand resync fired on the
+          // PASSING -> PLAYING transition below will bring in the full,
+          // correct hand (including these cards) once it's actually time
+          // to reveal them.
+          if (state.table?.phase !== "PASSING") {
+            dispatch({ type: "ADD_CARDS_TO_HAND", cards: msg.cards as string[] });
+          }
         }
         break;
       }
@@ -80,12 +104,24 @@ export default function Game() {
           type: "SET_SCORES",
           scores: mapGameScoresOnly(msg.scores as Record<string, number>, state.scores),
         });
+        // The last trick of the deal doesn't get its own trick_loser message —
+        // the backend sends deal_over instead — so this is the only place the
+        // final trick's cards get collected and cleared off the table.
+        collectTrick(msg.losing_player_id as string);
         break;
       }
       case "error": {
         if (msg.reason === "invalid_play" || msg.reason === "invalid_pass") {
           setPlayError((msg.message as string) ?? "That's not allowed right now.");
           send({ type: "get_my_hand" }); // resync in case an optimistic update was wrong
+          if (msg.reason === "invalid_play" && pendingPlayRef.current) {
+            // Roll back the optimistic trick-pile entry — the play never actually happened.
+            const rejectedCardId = pendingPlayRef.current;
+            setTrickCards((prev) =>
+              prev.filter((p) => !(p.playerId === state.userId && p.card === rejectedCardId))
+            );
+            pendingPlayRef.current = null;
+          }
         }
         break;
       }
@@ -148,6 +184,8 @@ export default function Game() {
   }, [playError]);
 
   const prevPhaseRef = useRef<string | null>(null);
+  const [isDealing, setIsDealing] = useState(false);
+  const dealAnimTimeoutRef = useRef<number | null>(null);
 
   // Passing is a multi-party operation — trust the server's final hand
   // rather than trying to reconstruct it from cards_received/optimistic
@@ -161,8 +199,22 @@ export default function Game() {
     if (prevPhase === "DEAL_END" && currentPhase === "PASSING") {
       send({ type: "get_my_hand" });
     }
+    // A fresh deal just landed — either the very first deal after the game
+    // starts (prevPhase is null) or a host-triggered redeal (prevPhase is
+    // DEAL_END). Either way, play the dealing animation.
+    if (currentPhase === "PASSING" && prevPhase !== "PASSING") {
+      setIsDealing(true);
+      if (dealAnimTimeoutRef.current) window.clearTimeout(dealAnimTimeoutRef.current);
+      dealAnimTimeoutRef.current = window.setTimeout(() => setIsDealing(false), 2000);
+    }
     prevPhaseRef.current = currentPhase;
   }, [state.table?.phase]);
+
+  useEffect(() => {
+    return () => {
+      if (dealAnimTimeoutRef.current) window.clearTimeout(dealAnimTimeoutRef.current);
+    };
+  }, []);
 
   const seats = useSeatLayout(state.players, state.turnOrder, state.userId);
 
@@ -189,6 +241,14 @@ export default function Game() {
   function handlePlayCard(cards: string[]) {
     const [cardId] = cards;
     dispatch({ type: "REMOVE_CARDS_FROM_HAND", cards: [cardId] }); // optimistic
+    // Also optimistically add to the visible trick pile so handCounts' baseline
+    // (hand.length + selfPlayed) moves in lockstep instead of racing the
+    // card_played broadcast — otherwise opponents' derived counts dip by 1
+    // for a beat, which reads as their face-down fan flickering.
+    pendingPlayRef.current = cardId;
+    setTrickCards((prev) =>
+      prev.some((p) => p.playerId === state.userId) ? prev : [...prev, { playerId: state.userId, card: cardId }]
+    );
     send({ type: "play_card", card: cardId });
   }
 
@@ -222,8 +282,14 @@ export default function Game() {
           className="absolute rounded-[50%] border-4 border-green-950/40 bg-green-800/60 shadow-inner"
           style={{ left: "8%", right: "8%", top: "14%", bottom: "26%" }}
         />
-        <Table seats={seats} handCounts={handCounts} currentTurnPlayerId={state.table?.currentTurnPlayerId} />
-        <Trick plays={trickCards} seats={seats} />
+        {isDealing ? (
+          <DealAnimation active={isDealing} seats={seats} />
+        ) : (
+          <>
+            <Table seats={seats} handCounts={handCounts} currentTurnPlayerId={state.table?.currentTurnPlayerId} />
+            <Trick plays={trickCards} seats={seats} winnerId={trickWinnerId} />
+          </>
+        )}
       </div>
 
       {playError && (
@@ -237,7 +303,9 @@ export default function Game() {
           isMyTurn ? "shadow-[0_0_24px_6px_rgba(250,204,21,0.35)]" : ""
         }`}
       >
-        {isDealOver ? (
+        {isDealing ? (
+          <div className="text-center text-white/70 text-sm py-6">Dealing…</div>
+        ) : isDealOver ? (
           <div className="flex flex-col items-center gap-3 py-6">
             <span className="text-white/80 text-sm">Deal over — final scores are in.</span>
             {isHost ? (

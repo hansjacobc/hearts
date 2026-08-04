@@ -10,6 +10,7 @@ interface PlayedCard {
 interface TrickProps {
   plays: PlayedCard[];
   seats: Seat[];
+  winnerId?: string | null; // when set, cards exit toward this player's seat (trick/deal collected)
 }
 
 function hash(str: string): number {
@@ -18,8 +19,9 @@ function hash(str: string): number {
   return Math.abs(h);
 }
 
-export default function Trick({ plays, seats }: TrickProps) {
+export default function Trick({ plays, seats, winnerId }: TrickProps) {
   const seatById = new Map(seats.map((s) => [s.player.id, s]));
+  const winnerSeat = winnerId ? seatById.get(winnerId) : undefined;
 
   return (
     <div className="relative w-full h-full">
@@ -43,6 +45,19 @@ export default function Trick({ plays, seats }: TrickProps) {
           const destYPct = 50 + towardY + jitterY;
           const settleRotate = ((h1 % 60) - 30) / 2;
 
+          // Collected exit: cards sweep toward the trick winner's seat and
+          // shrink away as if being scooped into their hand. Falls back to
+          // the old fade-in-place if we ever don't have a winner seat.
+          const exit = winnerSeat
+            ? {
+                left: `${winnerSeat.xPct}%`,
+                top: `${winnerSeat.yPct}%`,
+                opacity: 0,
+                scale: 0.4,
+                rotate: settleRotate,
+              }
+            : { opacity: 0, scale: 0.7 };
+
           return (
             <motion.div
               key={card + playerId}
@@ -55,11 +70,11 @@ export default function Trick({ plays, seats }: TrickProps) {
                 scale: 1,
                 rotate: settleRotate,
               }}
-              exit={{ opacity: 0, scale: 0.7 }}
+              exit={exit}
               transition={{ type: "spring", stiffness: 220, damping: 20 }}
             >
               <div className="-translate-x-1/2 -translate-y-1/2">
-                <Card rank={card.split("_")[0]} suit={card.split("_")[1]} size="sm" disabled />
+                <Card rank={card.split("_")[0]} suit={card.split("_")[1]} size="lg" disabled />
               </div>
             </motion.div>
           );
