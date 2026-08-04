@@ -6,7 +6,7 @@ import Trick from "../components/Trick";
 import Scoreboard from "../components/Scoreboard";
 import Table from "../components/Table";
 import { useSeatLayout } from "../hooks/useSeatLayout";
-import { mapTableState, mapScores, type RawTableState } from "../utils/mapServerState";
+import { mapTableState, mapScores, type RawTableState, mapGameScoresOnly } from "../utils/mapServerState";
 import { useNavigate } from "react-router-dom";
 
 interface TrickCard {
@@ -73,6 +73,13 @@ export default function Game() {
         if (Array.isArray(msg.cards)) {
           dispatch({ type: "ADD_CARDS_TO_HAND", cards: msg.cards as string[] });
         }
+        break;
+      }
+      case "deal_over": {
+        dispatch({
+          type: "SET_SCORES",
+          scores: mapGameScoresOnly(msg.scores as Record<string, number>, state.scores),
+        });
         break;
       }
       case "error": {
@@ -151,6 +158,9 @@ export default function Game() {
     if (prevPhase === "PASSING" && currentPhase === "PLAYING") {
       send({ type: "get_my_hand" });
     }
+    if (prevPhase === "DEAL_END" && currentPhase === "PASSING") {
+      send({ type: "get_my_hand" });
+    }
     prevPhaseRef.current = currentPhase;
   }, [state.table?.phase]);
 
@@ -187,6 +197,13 @@ export default function Game() {
     send({ type: "pass_cards", cards_to_pass: cards });
   }
 
+  const isDealOver = state.table?.phase === "DEAL_END";
+  const isHost = state.players.find((p) => p.id === state.userId)?.isHost ?? false;
+
+  function handleDealAgain() {
+    send({ type: "shuffle_and_deal" });
+  }
+
   if (!hasIdentity) return null;
 
 
@@ -220,7 +237,21 @@ export default function Game() {
           isMyTurn ? "shadow-[0_0_24px_6px_rgba(250,204,21,0.35)]" : ""
         }`}
       >
-        {isPassing ? (
+        {isDealOver ? (
+          <div className="flex flex-col items-center gap-3 py-6">
+            <span className="text-white/80 text-sm">Deal over — final scores are in.</span>
+            {isHost ? (
+              <button
+                onClick={handleDealAgain}
+                className="px-5 py-2 rounded-full font-semibold bg-yellow-400 text-green-950 hover:bg-yellow-300 transition-colors"
+              >
+                Deal again
+              </button>
+            ) : (
+              <span className="text-white/50 text-xs">Waiting for the host to deal again…</span>
+            )}
+          </div>
+        ) : isPassing ? (
           state.table?.direction === "KEEP" ? (
             <div className="text-center text-white/70 text-sm py-6">
               No passing this round — waiting for everyone to be ready…

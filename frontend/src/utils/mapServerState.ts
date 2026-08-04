@@ -57,3 +57,14 @@ export function mapScores(
   }
   return result;
 }
+
+export function mapGameScoresOnly(
+  raw: Record<string, number>,
+  existing: Record<string, PlayerScore>
+): Record<string, PlayerScore> {
+  const result: Record<string, PlayerScore> = { ...existing };
+  for (const [playerId, gameScore] of Object.entries(raw)) {
+    result[playerId] = { roundScore: 0, gameScore };
+  }
+  return result;
+}
