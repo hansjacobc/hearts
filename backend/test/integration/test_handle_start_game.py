@@ -6,7 +6,7 @@ from src.schemas import CreateRoomRequest, JoinRoomRequest, StartGameRequest
 
 
 @pytest.mark.asyncio
-async def test_start_room_redis(redis_client):
+async def test_start_room_redis(redis_client, seed_five_players):
     # set up a room
     request = CreateRoomRequest(
         host_player_id="player1",
@@ -18,12 +18,7 @@ async def test_start_room_redis(redis_client):
     )
     room_id = create_room_resp.room_id
 
-    # create player nicknames
-    await redis_client.hset("player:player1", mapping={"nickname": "p1"})
-    await redis_client.hset("player:player2", mapping={"nickname": "p2"})
-    await redis_client.hset("player:player3", mapping={"nickname": "p3"})
-    await redis_client.hset("player:player4", mapping={"nickname": "p4"})
-    await redis_client.hset("player:player5", mapping={"nickname": "p5"})
+    await seed_five_players
 
     # have 4 players join the room for 5 total
     for i in range(2, 6):
@@ -87,7 +82,8 @@ async def test_start_room_redis(redis_client):
 
 
 @pytest.mark.asyncio
-async def test_start_room_endpoint(client, redis_client):
+async def test_start_room_endpoint(client, seed_five_players):
+    await seed_five_players
     create_room_resp = await client.post(
         "/rooms",
         json={
@@ -98,13 +94,6 @@ async def test_start_room_endpoint(client, redis_client):
 
     assert create_room_resp.status_code == 200
     room_id = create_room_resp.json()["room_id"]
-
-    # create player nicknames
-    await redis_client.hset("player:player1", mapping={"nickname": "p1"})
-    await redis_client.hset("player:player2", mapping={"nickname": "p2"})
-    await redis_client.hset("player:player3", mapping={"nickname": "p3"})
-    await redis_client.hset("player:player4", mapping={"nickname": "p4"})
-    await redis_client.hset("player:player5", mapping={"nickname": "p5"})
 
     # have 4 players join the room for 5 total
     for i in range(2, 6):

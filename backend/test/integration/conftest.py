@@ -162,3 +162,15 @@ def reset_connections():
     yield
     _room_connections.clear()
     _room_locks.clear()
+
+
+@pytest_asyncio.fixture
+def seed_five_players(redis_client):
+    async def _seed_five_players():
+        await redis_client.hset("player:player1", mapping={"nickname": "p1"})
+        await redis_client.hset("player:player2", mapping={"nickname": "p2"})
+        await redis_client.hset("player:player3", mapping={"nickname": "p3"})
+        await redis_client.hset("player:player4", mapping={"nickname": "p4"})
+        await redis_client.hset("player:player5", mapping={"nickname": "p5"})
+
+    return _seed_five_players()

@@ -2,6 +2,7 @@ import json
 import random
 
 from redis.asyncio import Redis
+from src.handlers.web_socket.connections import broadcast, send_to_player
 from src.rooms import GamePhase
 from src.schemas import PlayerInfo
 
@@ -95,3 +96,27 @@ async def build_players_in_room(
             PlayerInfo(id=player_id, name=nickname, is_host=player_id == host_id)
         )
     return players_in_room
+
+
+async def send_room_info_on_ws_conn(room_id: str, player_id: str, redis: Redis):
+    room_data = await redis.hgetall(f"room:{room_id}")
+    if room_data:
+        players_in_room = await build_players_in_room(room_data, room_id, redis)
+        await send_to_player(
+            room_id,
+            player_id,
+            {
+                "type": "room_state",
+                "status": room_data.get("status"),
+                "players": [p.model_dump() for p in players_in_room],
+            },
+        )
+
+        me = next((p for p in players_in_room if p.id == player_id), None)
+        if me is not None:
+            # already a room member => this is a reconnect, not a fresh join.
+            # tell everyone else so they undo the player_disconnected they
+            # got when the old connection dropped a moment ago
+            await broadcast(
+                room_id, {"type": "player_joined", "player": me.model_dump()}
+            )

@@ -38,7 +38,7 @@ async def is_valid_play(room_id: str, player_id: str, card: str, redis: Redis):
 
     # turn start logic for empty pile, can't start with hearts if
     # hearts not broken and can't play queen of spades
-    if turn_number == 1:
+    if round_number == 1:
         if card == "Q_spades":
             return False
         if not is_hearts_broken and suit == "hearts":

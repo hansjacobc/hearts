@@ -10,11 +10,11 @@ from src.handlers.handle_get_user import handle_get_player
 from src.handlers.handle_health import handle_health
 from src.handlers.handle_join_room import handle_join_room
 from src.handlers.handle_start_game import handle_start_game
-from src.handlers.helpers import build_players_in_room
+from src.handlers.helpers import send_room_info_on_ws_conn
 from src.handlers.web_socket.connections import (
     broadcast,
+    get_room_lock,
     register_web_socket,
-    send_to_player,
     unregister_web_socket,
 )
 from src.handlers.web_socket.websocket_handler import handle_websocket_action
@@ -59,29 +59,9 @@ async def game_socket(
     redis: Redis = Depends(get_redis_ws),
 ):
     await websocket.accept()
-    register_web_socket(room_id, player_id, websocket)
-
-    room_data = await redis.hgetall(f"room:{room_id}")
-    if room_data:
-        players_in_room = await build_players_in_room(room_data, room_id, redis)
-        await send_to_player(
-            room_id,
-            player_id,
-            {
-                "type": "room_state",
-                "status": room_data.get("status"),
-                "players": [p.model_dump() for p in players_in_room],
-            },
-        )
-
-        me = next((p for p in players_in_room if p.id == player_id), None)
-        if me is not None:
-            # already a room member => this is a reconnect, not a fresh join.
-            # tell everyone else so they undo the player_disconnected they
-            # got when the old connection dropped a moment ago
-            await broadcast(
-                room_id, {"type": "player_joined", "player": me.model_dump()}
-            )
+    async with get_room_lock(room_id):
+        register_web_socket(room_id, player_id, websocket)
+        await send_room_info_on_ws_conn(room_id, player_id, redis)
     try:
         while True:
             message = await websocket.receive_json()
@@ -95,7 +75,7 @@ async def game_socket(
                 )
                 raise
     except WebSocketDisconnect:
-        unregister_web_socket(room_id, player_id)
+        unregister_web_socket(room_id, player_id, websocket)
         await broadcast(
             room_id, {"type": "player_disconnected", "player_id": player_id}
         )

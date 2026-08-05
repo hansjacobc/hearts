@@ -47,13 +47,19 @@ async def test_game_flow_basic(
 # pylint: disable=line-too-long
 @pytest.mark.asyncio
 async def test_game_flow_giga_test(
-    redis_client, ws_action, make_room_state, setup_players_hands
+    redis_client, ws_action, make_room_state, setup_players_hands, seed_five_players
 ):
     """
     Testing the happy path of an entire game flow to make sure
     everything is updated accordingly
     """
     await make_room_state("room1", "player1")
+
+    await redis_client.sadd(
+        "room:room1:players", *["player1", "player2", "player3", "player4", "player5"]
+    )
+
+    await seed_five_players
     # fmt: off
     await setup_players_hands(
         "room1",
@@ -86,9 +92,10 @@ async def test_game_flow_giga_test(
     assert state_resp["state"] == {
         "card_pile": [{"card": "2_clubs", "player_id": "player1"}],
         "current_turn_player_id": "player2",
+        "direction": "KEEP",
         "game_number": 1,
         "is_hearts_broken": False,
-        "last_action": "Anon played 2_clubs",
+        "last_action": "p1 played 2_clubs",
         "last_action_player_id": "player1",
         "lead_suit": "clubs",
         "phase": "PLAYING",
@@ -107,9 +114,10 @@ async def test_game_flow_giga_test(
             {"card": "10_clubs", "player_id": "player2"},
         ],
         "current_turn_player_id": "player3",
+        "direction": "KEEP",
         "game_number": 1,
         "is_hearts_broken": False,
-        "last_action": "Anon played 10_clubs",
+        "last_action": "p2 played 10_clubs",
         "last_action_player_id": "player2",
         "lead_suit": "clubs",
         "phase": "PLAYING",
@@ -129,9 +137,10 @@ async def test_game_flow_giga_test(
             {"card": "3_clubs", "player_id": "player3"},
         ],
         "current_turn_player_id": "player4",
+        "direction": "KEEP",
         "game_number": 1,
         "is_hearts_broken": False,
-        "last_action": "Anon played 3_clubs",
+        "last_action": "p3 played 3_clubs",
         "last_action_player_id": "player3",
         "lead_suit": "clubs",
         "phase": "PLAYING",
@@ -152,9 +161,10 @@ async def test_game_flow_giga_test(
             {"card": "4_clubs", "player_id": "player4"},
         ],
         "current_turn_player_id": "player5",
+        "direction": "KEEP",
         "game_number": 1,
         "is_hearts_broken": False,
-        "last_action": "Anon played 4_clubs",
+        "last_action": "p4 played 4_clubs",
         "last_action_player_id": "player4",
         "lead_suit": "clubs",
         "phase": "PLAYING",
@@ -170,9 +180,10 @@ async def test_game_flow_giga_test(
     assert state_resp["state"] == {
         "card_pile": [],
         "current_turn_player_id": "",
+        "direction": "KEEP",
         "game_number": 1,
         "is_hearts_broken": False,
-        "last_action": "Anon played 5_clubs",
+        "last_action": "p5 played 5_clubs",
         "last_action_player_id": "player5",
         "lead_suit": "clubs",
         "phase": "TRICK_END",
@@ -187,9 +198,10 @@ async def test_game_flow_giga_test(
     assert state_resp["state"] == {
         "card_pile": [],
         "current_turn_player_id": "player2",
+        "direction": "KEEP",
         "game_number": 1,
         "is_hearts_broken": False,
-        "last_action": "Anon played 5_clubs",
+        "last_action": "p5 played 5_clubs",
         "last_action_player_id": "player5",
         "lead_suit": "OPEN",
         "phase": "PLAYING",

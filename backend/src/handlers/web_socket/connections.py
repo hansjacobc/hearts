@@ -20,19 +20,21 @@ def register_web_socket(room_id: str, player_id: str, websocket: WebSocket) -> N
     _room_connections.setdefault(room_id, {})[player_id] = websocket
 
 
-def unregister_web_socket(room_id: str, player_id: str) -> None:
-    _room_connections.get(room_id, {}).pop(player_id, None)
+def unregister_web_socket(room_id: str, player_id: str, websocket: WebSocket) -> None:
+    room = _room_connections.get(room_id)
+    if room and room.get(player_id) is websocket:
+        room.pop(player_id, None)
 
 
 async def broadcast(room_id: str, payload: dict) -> None:
-    dead = []
+    dead: list[tuple[str, WebSocket]] = []
     for player_id, ws in _room_connections.get(room_id, {}).items():
         try:
             await ws.send_json(payload)
         except Exception:
-            dead.append(player_id)
-    for player_id in dead:
-        unregister_web_socket(room_id, player_id)
+            dead.append((player_id, ws))
+    for player_id, ws in dead:
+        unregister_web_socket(room_id, player_id, ws)
 
 
 async def send_to_player(room_id: str, player_id: str, payload: dict) -> None:
@@ -42,4 +44,4 @@ async def send_to_player(room_id: str, player_id: str, payload: dict) -> None:
     try:
         await ws.send_json(payload)
     except Exception:
-        unregister_web_socket(room_id, player_id)
+        unregister_web_socket(room_id, player_id, ws)
