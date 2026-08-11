@@ -48,6 +48,29 @@ export default function Game() {
         if (Array.isArray(msg.hand)) dispatch({ type: "SET_HAND", hand: msg.hand as string[] });
         break;
       }
+      case "room_state": {
+        if (Array.isArray(msg.players)) {
+          const raw = msg.players as { id: string; name: string; is_host: boolean }[];
+          dispatch({
+            type: "MERGE_PLAYERS",
+            players: raw.map((p) => ({ id: p.id, name: p.name, isHost: p.is_host })),
+          });
+        }
+        break;
+      }
+      case "player_joined": {
+        if (msg.player) {
+          const p = msg.player as { id: string; name: string; is_host: boolean };
+          dispatch({ type: "MERGE_PLAYERS", players: [{ id: p.id, name: p.name, isHost: p.is_host }] });
+        }
+        break;
+      }
+      case "player_disconnected": {
+        if (typeof msg.player_id === "string") {
+          dispatch({ type: "PLAYER_LEFT", playerId: msg.player_id });
+        }
+        break;
+      }
       case "state": {
         const raw = msg.state as RawTableState;
         dispatch({ type: "SET_TABLE_STATE", table: mapTableState(raw) });
@@ -100,6 +123,7 @@ export default function Game() {
         break;
       }
       case "deal_over": {
+        dispatch({ type: "DEAL_ENDED" });
         dispatch({
           type: "SET_SCORES",
           scores: mapGameScoresOnly(msg.scores as Record<string, number>, state.scores),

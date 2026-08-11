@@ -32,6 +32,7 @@ type Action =
   | { type: "SET_STATUS"; status: "waiting" | "in_progress" }
   | { type: "SET_TABLE_STATE"; table: TableState }
   | { type: "TRICK_RESOLVED"; losingPlayerId: string }
+  | { type: "DEAL_ENDED" }
   | { type: "SET_SCORES"; scores: Record<string, PlayerScore> }
   | { type: "REMOVE_CARDS_FROM_HAND"; cards: string[] }
   | { type: "ADD_CARDS_TO_HAND"; cards: string[] };
@@ -89,6 +90,8 @@ function reducer(state: GameState, action: Action): GameState {
             },
           }
         : state;
+    case "DEAL_ENDED":
+      return state.table ? { ...state, table: { ...state.table, phase: "DEAL_END", leadSuit: "OPEN" } } : state;
     case "SET_SCORES":
       return { ...state, scores: action.scores };
     case "REMOVE_CARDS_FROM_HAND": {
