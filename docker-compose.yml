@@ -1,11 +1,23 @@
 services:
   api:
     build: ./backend
-    ports:
-      - "8000:8000"
     environment:
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
 
   redis:
     image: redis:7
@@ -28,3 +40,7 @@ services:
       - api
     profiles:
       - local
+
+volumes:
+  caddy_data:
+  caddy_config:
