@@ -6,12 +6,15 @@ services:
     depends_on:
       - redis
     environment:
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
 
   redis:
     image: redis:7
     ports:
       - "6379:6379"
+    profiles:
+      - local
 
   frontend:
     build: ./frontend
@@ -25,3 +28,5 @@ services:
       VITE_WS_BASE: ws://localhost:8000/ws
     depends_on:
       - api
+    profiles:
+      - local
