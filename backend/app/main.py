@@ -1,4 +1,5 @@
 import logging
+import os
 
 from app.dependencies import get_redis, get_redis_ws
 from app.lifespan import lifespan
@@ -34,9 +35,11 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(lifespan=lifespan)
 
+origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite localhost port
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
