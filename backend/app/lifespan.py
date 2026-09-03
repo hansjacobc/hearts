@@ -11,12 +11,8 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator:
-    redis = Redis(
-        host=os.getenv("REDIS_HOST", "localhost"),
-        port=int(os.getenv("REDIS_PORT", "6379")),
-        db=0,
-        decode_responses=True,
-    )
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+    redis = Redis.from_url(redis_url, decode_responses=True)
 
     try:
         await redis.ping()
